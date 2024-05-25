@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:openai/src/sample_feature/pages/sample_login_page.dart';
+import 'package:openai/src/feature/pages/login_page.dart';
 import 'package:provider/provider.dart';
-import 'sample_feature/pages/home_page.dart';
+import 'feature/pages/home_page.dart';
 import 'settings/settings_controller.dart';
 
 /// The Widget that configures your application.

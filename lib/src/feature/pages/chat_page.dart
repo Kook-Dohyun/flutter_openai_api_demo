@@ -7,8 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:openai/src/sample_feature/seperate_pages/api_list_messages.dart';
-import 'package:openai/src/sample_feature/seperate_pages/assistant_detail_page.dart';
+import 'package:openai/src/feature/seperate_pages/api_list_messages.dart';
+import 'package:openai/src/feature/seperate_pages/assistant_detail_page.dart';
 import 'package:openai/src/services/openai_client.dart';
 import 'package:openai/src/services/assistant_response_classes.dart';
 import 'package:openai/src/settings/chat_state_provider.dart';
@@ -85,12 +85,8 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _handleTextChange() {
+    ///convert to Additional Instruction
     if (_textController.text.startsWith('@')) {
-      // currentText = currentText.substring(1);
-      // _textController.value = TextEditingValue(
-      //   text: currentText,
-      //   selection: TextSelection.collapsed(offset: currentText.length),
-      // );
       _chatState!
           .setTempAdditionalInstruction(_textController.text.substring(1));
     } else {
@@ -308,22 +304,16 @@ class _ChatPageState extends State<ChatPage> {
         for (int index = 0; index <= selectedIndex; index++) {
           Message message = snapshotData[index];
 
-          // 삭제 작업을 작업 목록에 추가
           var deleteTask = messageService._colRef
-              .doc(message.id) // 메시지 객체에서 문서 ID를 추출
+              .doc(message.id)
               .delete()
-              .catchError((error) {
-            // print(
-            //     'Error deleting message with ID: ${message.id}, Error: $error');
-          });
+              .catchError((error) {});
 
           deleteTasks.add(deleteTask);
         }
 
         // 모든 삭제 작업을 병렬로 처리
         await Future.wait(deleteTasks);
-        // print(
-        //     'All selected messages up to index $selectedIndex have been deleted.');
       }
     }
   }
@@ -460,14 +450,6 @@ class _ChatPageState extends State<ChatPage> {
                 size: 20,
               ),
             ),
-
-            // IconButton(
-            //     onPressed: () async {
-            //       if (await Vibration.hasVibrator() != null) {
-            //         Vibration.vibrate();
-            //       }
-            //     },
-            //     icon: const Icon(Icons.filter_sharp))
           ],
         ),
         actions: [
@@ -854,7 +836,6 @@ class _ChatPageState extends State<ChatPage> {
                 dense: true,
                 onTap: () {
                   _textController.text = '@${chatState.additionalInstructions}';
-                  print(chatState.userText);
                 },
                 subtitle: Text(
                   chatState.additionalInstructions,
@@ -1986,9 +1967,8 @@ class _ThreadsListPageState extends State<ThreadsListPage> {
     if (thread == null || thread.createdAt == null) return const ListTile();
 
     return ListTile(
-      title:
-          Text('Created At: ${timeInterpreter(thread.createdAt! //TODO lastwork
-              , format: 'MM/dd HH:mm')}'),
+      title: Text(
+          'Created At: ${timeInterpreter(thread.createdAt!, format: 'MM/dd HH:mm')}'),
       subtitle: Text('ID: ${thread.id}'),
       trailing: const Icon(Icons.arrow_forward_ios),
       onTap: () {
@@ -2157,20 +2137,23 @@ class _SearchTextFieldState extends State<SearchTextField> {
         child: Row(
           children: [
             Expanded(
-                child: TextField(
-                    focusNode: _focus,
-                    decoration: InputDecoration(
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Colors.black,
-                        ),
-                        // suffixIcon: Text("Cancel"),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                                color: Colors.blue, width: 1))))),
+              child: TextField(
+                focusNode: _focus,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Colors.black,
+                  ),
+                  // suffixIcon: Text("Cancel"),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.blue, width: 1),
+                  ),
+                ),
+              ),
+            ),
             if (widget.onCancel != null)
               GestureDetector(
                 onTap: widget.onCancel,

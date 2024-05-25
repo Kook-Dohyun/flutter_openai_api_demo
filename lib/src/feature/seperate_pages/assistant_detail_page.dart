@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:openai/src/sample_feature/seperate_pages/assistant_modify_page.dart';
+import 'package:openai/src/feature/seperate_pages/assistant_modify_page.dart';
 import 'package:openai/src/services/openai_client.dart';
 import 'package:provider/provider.dart';
 import '../../services/assistant_response_classes.dart';

@@ -10,7 +10,7 @@ import '../widgets/setting_drawer_widget.dart';
 import '../seperate_pages/assistant_modify_page.dart';
 import '../seperate_pages/assistant_detail_page.dart';
 import 'image_page.dart';
-import 'chat_page_v2.dart';
+import 'chat_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
