@@ -38,10 +38,12 @@
 
 # 설정
 
-## 1. 첫 번째 설정
+## 1. Flutter 설정
 
 1. **Flutter 설치**
     - 먼저, Flutter가 설치되어 있어야 합니다. Flutter를 설치하는 방법은 [Flutter 공식 문서](https://flutter.dev/docs/get-started/install)를 참고하세요.
+    - Flutter version: 3.22.0 ( on channel stable ) 
+    - Dart version: 3.4.0
 
 2. **레포지토리 다운로드**
     - 터미널을 열고, 다음 명령어를 사용하여 레포지토리를 클론합니다:
