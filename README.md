@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://raw.githubusercontent.com/Kook-Dohyun/flutter_openai_api_demo/main/assets/Untitled%20design.png"  width=50%/>
+    <img src="https://raw.githubusercontent.com/Kook-Dohyun/flutter_openai_api_demo/main/assets/Untitled%20design.png"  width=90%/>
 </p>
 
 # **Flutter OpenAI API Demo**
