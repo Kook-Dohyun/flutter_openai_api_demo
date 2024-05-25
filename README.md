@@ -37,7 +37,7 @@
 2. **레포지토리 다운로드**
     - 터미널을 열고, 다음 명령어를 사용하여 레포지토리를 클론합니다:
     ```sh
-    git clone <레포지토리 URL>
+    git clone https://github.com/Kook-Dohyun/flutter_openai_api_demo.git
     ```
 
 3. **프로젝트 디렉토리로 이동**
