@@ -611,8 +611,10 @@ class _ChatPageState extends State<ChatPage> {
                             ),
                             IconButton(
                                 onPressed: () {
+                                  if (chatState.editMessageMode) {
+                                    _textController.text = '';
+                                  }
                                   chatState.setEditMode(value: false);
-                                  _textController.text = '';
                                 },
                                 color:
                                     Theme.of(context).scaffoldBackgroundColor,
@@ -1004,13 +1006,20 @@ class _ChatPageState extends State<ChatPage> {
                                     role: Role.user);
                                 if (chatState.editMessageMode) {
                                   (await regenMessage(
-                                    oldMessage: chatState.userMessage!,
-                                    index: chatState.editIndex!,
-                                    request: _request,
-                                    editMode: true,
-                                    topP: topP,
-                                    temperature: temperature,
-                                  ));
+                                      oldMessage: chatState.userMessage!,
+                                      index: chatState.editIndex!,
+                                      request: _request,
+                                      editMode: true,
+                                      topP: topP,
+                                      temperature: temperature,
+                                      additionalMessages: chatState
+                                              .additionalMessages.isNotEmpty
+                                          ? chatState.additionalMessages
+                                          : null,
+                                      additionalInstructions: chatState
+                                              .additionalInstructions.isNotEmpty
+                                          ? chatState.additionalInstructions
+                                          : null));
                                   setState(() {
                                     topP = _assistant.topP!.toDouble();
                                     temperature =

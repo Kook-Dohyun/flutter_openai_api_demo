@@ -153,6 +153,7 @@ class ChatState extends ChangeNotifier {
     _userText = '';
     _messaging = false;
     _editIndex = null;
+    _showController = false;
     _editMessageMode = false;
     _rateLimitExceeded = false;
     _errorMessage = '';
@@ -161,6 +162,7 @@ class ChatState extends ChangeNotifier {
     _thread = null;
     _userMessage = null;
     _resRun = null;
+    _applyAdditionalInstructions = false;
     _additionalInstructions = '';
     removeAdditionalMessages();
     notifyListeners();
