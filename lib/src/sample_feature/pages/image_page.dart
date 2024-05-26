@@ -82,7 +82,6 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
             "I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: ");
 
     await _loadImageResponses();
-    loading = true;
   }
 
   Future<void> _loadImageResponses() async {
@@ -112,6 +111,7 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
     }
     setState(() {
       cachedImageData;
+      loading = true;
     });
   }
 

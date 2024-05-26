@@ -43,6 +43,8 @@ class _ChatPageState extends State<ChatPage> {
   late ReqMessage _request;
   late double temperature = _assistant.temperature!.toDouble();
   late double topP = _assistant.topP!.toDouble();
+  int? maxPromptTokens;
+  int? maxCompletionTokens;
 
   @override
   void initState() {
@@ -207,6 +209,7 @@ class _ChatPageState extends State<ChatPage> {
     num? topP,
     num? temperature,
   }) async {
+    _chatState!.setShowController(false);
     if (threadId == '') return;
     _chatState!.setMessaging(true);
     final Message newMessage =
@@ -227,12 +230,15 @@ class _ChatPageState extends State<ChatPage> {
     subscribeToEvents(
       _chatState!.userMessage!,
       _openai.createRunAndListenToEvents(
-          assistantId: _assistant.id,
-          threadId: threadId,
-          additionalMessages: additionalMessages,
-          additionalInstructions: additionalInstructions,
-          topP: topP,
-          temperature: temperature),
+        assistantId: _assistant.id,
+        threadId: threadId,
+        additionalMessages: additionalMessages,
+        additionalInstructions: additionalInstructions,
+        topP: topP,
+        temperature: temperature,
+        maxPromptTokens: maxPromptTokens,
+        maxCompletionTokens: maxCompletionTokens,
+      ),
     );
   }
 
@@ -241,9 +247,12 @@ class _ChatPageState extends State<ChatPage> {
     required Message oldMessage,
     required int index,
     bool? editMode = false,
+    List<AdditionalMessage>? additionalMessages,
+    String? additionalInstructions,
     num? topP,
     num? temperature,
   }) async {
+    _chatState!.setShowController(false);
     _chatState!.setMessaging(true);
     _chatState!.setEditMode(value: false);
     _chatState!.setUserMessage(oldMessage);
@@ -279,8 +288,12 @@ class _ChatPageState extends State<ChatPage> {
       _openai.createRunAndListenToEvents(
         assistantId: _assistant.id,
         threadId: threadId,
+        additionalMessages: additionalMessages,
+        additionalInstructions: additionalInstructions,
         topP: topP,
         temperature: temperature,
+        maxPromptTokens: maxPromptTokens,
+        maxCompletionTokens: maxCompletionTokens,
       ),
     );
   }
@@ -436,15 +449,18 @@ class _ChatPageState extends State<ChatPage> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            IconButton(
-                tooltip: _isInstanceReady
-                    ? 'assistant_id: ${widget.assistant.id}\nthread_id: $threadId'
-                    : '',
-                onPressed: () {},
-                icon: const Icon(
-                  Icons.info,
-                  size: 20,
-                )),
+            Tooltip(
+              message: _isInstanceReady
+                  ? 'assistant_id: ${widget.assistant.id}\nthread_id: $threadId'
+                  : '',
+              onTriggered: () {},
+              triggerMode: TooltipTriggerMode.tap,
+              child: const Icon(
+                Icons.info,
+                size: 20,
+              ),
+            ),
+
             // IconButton(
             //     onPressed: () async {
             //       if (await Vibration.hasVibrator() != null) {
@@ -706,6 +722,99 @@ class _ChatPageState extends State<ChatPage> {
                             ],
                           ),
                         ),
+                        const SizedBox(
+                          height: 8,
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            showDialog(
+                                context: context,
+                                builder: (context) {
+                                  int? tokens;
+                                  return AlertDialog(
+                                    title: const Text('Set Max Prompt Tokens'),
+                                    content: TextField(
+                                      keyboardType: TextInputType.number,
+                                      autofocus: true,
+                                      onChanged: (value) {
+                                        if (value.toString().isNotEmpty) {
+                                          tokens = int.parse(value);
+                                        } else {
+                                          tokens = null;
+                                        }
+                                      },
+                                      onSubmitted: (value) {
+                                        maxPromptTokens = int.parse(value);
+                                        Navigator.pop(context);
+                                      },
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                          },
+                                          child: const Text('Cancle')),
+                                      TextButton(
+                                          onPressed: () {
+                                            maxPromptTokens = tokens;
+
+                                            Navigator.pop(context);
+                                          },
+                                          child: const Text('Set'))
+                                    ],
+                                  );
+                                });
+                          },
+                          child: maxPromptTokens == null
+                              ? const Text('Set Max Prompt Tokens')
+                              : Text('Max Prompt Tokens: $maxPromptTokens'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            showDialog(
+                                context: context,
+                                builder: (context) {
+                                  int? tokens;
+                                  return AlertDialog(
+                                    title:
+                                        const Text('Set Max Completion Tokens'),
+                                    content: TextField(
+                                      keyboardType: TextInputType.number,
+                                      autofocus: true,
+                                      onChanged: (value) {
+                                        if (value.toString().isNotEmpty) {
+                                          tokens = int.parse(value);
+                                        } else {
+                                          tokens = null;
+                                        }
+                                      },
+                                      onSubmitted: (value) {
+                                        maxCompletionTokens = int.parse(value);
+                                        Navigator.pop(context);
+                                      },
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                          },
+                                          child: const Text('Cancle')),
+                                      TextButton(
+                                          onPressed: () {
+                                            maxCompletionTokens = tokens;
+
+                                            Navigator.pop(context);
+                                          },
+                                          child: const Text('Set'))
+                                    ],
+                                  );
+                                });
+                          },
+                          child: maxCompletionTokens == null
+                              ? const Text('Set Max Completion Tokens')
+                              : Text(
+                                  'Max Completion Tokens: $maxCompletionTokens'),
+                        )
                       ],
                     ),
                   ),
@@ -914,12 +1023,13 @@ class _ChatPageState extends State<ChatPage> {
                                     role: Role.user);
                                 if (chatState.editMessageMode) {
                                   (await regenMessage(
-                                      oldMessage: chatState.userMessage!,
-                                      index: chatState.editIndex!,
-                                      request: _request,
-                                      editMode: true,
-                                      topP: topP,
-                                      temperature: temperature));
+                                    oldMessage: chatState.userMessage!,
+                                    index: chatState.editIndex!,
+                                    request: _request,
+                                    editMode: true,
+                                    topP: topP,
+                                    temperature: temperature,
+                                  ));
                                   setState(() {
                                     topP = _assistant.topP!.toDouble();
                                     temperature =
@@ -972,6 +1082,8 @@ class ChatBubble extends StatefulWidget {
     required Message oldMessage,
     required int index,
     bool? editMode,
+    List<AdditionalMessage>? additionalMessages,
+    String? additionalInstructions,
     num? topP,
     num? temperature,
   }) regenerateFunction;
@@ -1007,6 +1119,8 @@ class _ChatBubbleState extends State<ChatBubble> {
     required Message oldMessage,
     required int index,
     bool? editMode,
+    List<AdditionalMessage>? additionalMessages,
+    String? additionalInstructions,
     num? topP,
     num? temperature,
   }) regenerateFunction = widget.regenerateFunction;
@@ -1040,7 +1154,11 @@ class _ChatBubbleState extends State<ChatBubble> {
   };
 
   final double princesPer = 1000000.0;
-  Map<String, String> calculateCost(String model, Usage usage) {
+  dynamic calculateCost(
+      {required String model,
+      Usage? usage,
+      int? maxPromptTokens,
+      int? maxCompletionTokens}) {
     Map<String, String> costResults = {
       'prompt_tokens': '{\$0}',
       'completion_tokens': '{\$0}',
@@ -1055,15 +1173,29 @@ class _ChatBubbleState extends State<ChatBubble> {
         break;
       }
     }
-    double promptTokensCost = (usage.promptTokens / princesPer) * inputCost;
-    double completionTokensCost =
-        (usage.completionTokens / princesPer) * outputCost;
-    double totalTokensCost = promptTokensCost + completionTokensCost;
-    costResults['prompt_tokens'] = '\$${promptTokensCost.toStringAsFixed(6)}';
-    costResults['completion_tokens'] =
-        '\$${completionTokensCost.toStringAsFixed(6)}';
-    costResults['total_tokens'] = '\$${totalTokensCost.toStringAsFixed(6)}';
-    return costResults;
+    if (maxPromptTokens != null || maxCompletionTokens != null) {
+      if (maxPromptTokens != null) {
+        double promptTokensCost = (maxPromptTokens / princesPer) * inputCost;
+        String cost = '\$${promptTokensCost.toStringAsFixed(6)}';
+        return cost;
+      } else if (maxCompletionTokens != null) {
+        double completionTokensCost =
+            (maxCompletionTokens / princesPer) * outputCost;
+        String cost = '\$${completionTokensCost.toStringAsFixed(6)}';
+        return cost;
+      }
+    }
+    if (usage != null) {
+      double promptTokensCost = (usage.promptTokens / princesPer) * inputCost;
+      double completionTokensCost =
+          (usage.completionTokens / princesPer) * outputCost;
+      double totalTokensCost = promptTokensCost + completionTokensCost;
+      costResults['prompt_tokens'] = '\$${promptTokensCost.toStringAsFixed(6)}';
+      costResults['completion_tokens'] =
+          '\$${completionTokensCost.toStringAsFixed(6)}';
+      costResults['total_tokens'] = '\$${totalTokensCost.toStringAsFixed(6)}';
+      return costResults;
+    }
   }
 
   @override
@@ -1083,7 +1215,6 @@ class _ChatBubbleState extends State<ChatBubble> {
       });
     });
   }
- 
 
   @override
   void dispose() {
@@ -1123,7 +1254,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                   bottomLeft: Radius.circular(15),
                 ),
               ),
-              elevation: 8,
+              elevation: 4,
               clipBehavior: Clip.hardEdge,
               child: InkWell(
                 onLongPress: () {
@@ -1233,9 +1364,10 @@ class _ChatBubbleState extends State<ChatBubble> {
                                           userMessage.content ?? [],
                                           role: Role.user);
                                       widget.regenerateFunction(
-                                          request: request,
-                                          oldMessage: userMessage,
-                                          index: _index);
+                                        request: request,
+                                        oldMessage: userMessage,
+                                        index: _index,
+                                      );
                                     },
                                   ),
                                 ],
@@ -1289,6 +1421,8 @@ class _ChatBubbleState extends State<ChatBubble> {
             final Message message = entry.value;
             Usage? usage = run.usage;
             String model = run.model?.toString() ?? '';
+            int? maxPromptTokens = run.maxPromptTokens;
+            int? maxCompletionTokens = run.maxCompletionTokens;
             late String assistantContentText = '';
 
             if (topP == null || temperature == null) {
@@ -1344,7 +1478,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                                 bottomLeft: Radius.circular(15),
                               ),
                             ),
-                            elevation: 8,
+                            elevation: 4,
                             clipBehavior: Clip.hardEdge,
                             child: InkWell(
                               onLongPress: () {
@@ -1596,7 +1730,9 @@ class _ChatBubbleState extends State<ChatBubble> {
                                                         .map((entry) {
                                                       Map<String, String>
                                                           costs = calculateCost(
-                                                              model, usage);
+                                                        model: model,
+                                                        usage: usage,
+                                                      );
                                                       String costDisplay =
                                                           costs[entry.key] ??
                                                               "?";
@@ -1606,6 +1742,25 @@ class _ChatBubbleState extends State<ChatBubble> {
                                                             fontSize: 10),
                                                       );
                                                     }),
+                                                  if (maxPromptTokens != null)
+                                                    Text(
+                                                        'max prompt tokens: $maxPromptTokens (${calculateCost(
+                                                          model: model,
+                                                          maxPromptTokens:
+                                                              maxPromptTokens,
+                                                        )})',
+                                                        style: const TextStyle(
+                                                            fontSize: 10)),
+                                                  if (maxCompletionTokens !=
+                                                      null)
+                                                    Text(
+                                                        'max completion tokens: $maxCompletionTokens (${calculateCost(
+                                                          model: model,
+                                                          maxPromptTokens:
+                                                              maxCompletionTokens,
+                                                        )})',
+                                                        style: const TextStyle(
+                                                            fontSize: 10))
                                                 ],
                                               ),
                                             ),

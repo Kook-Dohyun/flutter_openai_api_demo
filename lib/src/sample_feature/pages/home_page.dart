@@ -215,96 +215,116 @@ class _HomePageState extends State<HomePage>
                               });
                             },
                             children: [
-                              ...snapshot.data!
-                                  .asMap()
-                                  .entries
-                                  .map<ListTile>((entry) {
-                                int index = entry.key + 1;
-                                Assistant assistant = entry.value;
-                                return ListTile(
-                                  leading: Text('$index '), // Index 표현
-                                  title: Text(assistant.name ?? '이름 없음'),
-                                  subtitle: Text(
-                                      (assistant.description == null ||
-                                              assistant.description == '')
-                                          ? '설명 없음'
-                                          : assistant.description!),
+                              if (snapshot.data!.isEmpty)
+                                ListTile(
+                                  title:
+                                      const Text('어시스턴트가 없습니다. 어시스턴트를 생성하세요'),
+                                  trailing: const Icon(
+                                      Icons.arrow_forward_ios_rounded),
                                   onTap: () async {
                                     await Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>
-                                            ChatPage(assistant: assistant),
+                                            const ModifyOrCreateAssistantPage(
+                                                action: '추가'),
                                       ),
                                     );
 
                                     _manualRefreshAssistants();
                                   },
-                                  onLongPress: () {
-                                    showDialog<void>(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          content: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: <Widget>[
-                                              TextButton(
-                                                child: const Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Text('디테일 뷰로 이동'),
-                                                    Icon(Icons
-                                                        .arrow_forward_ios_rounded),
-                                                  ],
-                                                ),
-                                                onPressed: () async {
-                                                  Navigator.pop(
-                                                      context); // 첫 번째 다이얼로그 닫기
-                                                  await Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (context) =>
-                                                          AssistantDetailsPage(
-                                                              assistant:
-                                                                  assistant),
-                                                    ),
-                                                  );
+                                ),
+                              if (snapshot.data!.isNotEmpty)
+                                ...snapshot.data!
+                                    .asMap()
+                                    .entries
+                                    .map<ListTile>((entry) {
+                                  int index = entry.key + 1;
+                                  Assistant assistant = entry.value;
+                                  return ListTile(
+                                    leading: Text('$index '), // Index 표현
+                                    title: Text(assistant.name ?? '이름 없음'),
+                                    subtitle: Text(
+                                        (assistant.description == null ||
+                                                assistant.description == '')
+                                            ? '설명 없음'
+                                            : assistant.description!),
+                                    onTap: () async {
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              ChatPage(assistant: assistant),
+                                        ),
+                                      );
 
-                                                  _manualRefreshAssistants();
-                                                },
-                                              ),
-                                              const Divider(),
-                                              TextButton(
-                                                child: const Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Text('삭제하기'),
-                                                    Icon(Icons.delete),
-                                                  ],
-                                                ),
-                                                onPressed: () async {
-                                                  Navigator.pop(
-                                                      context); // 첫 번째 다이얼로그 닫기
-                                                  await showDeleteDialog(
+                                      _manualRefreshAssistants();
+                                    },
+                                    onLongPress: () {
+                                      showDialog<void>(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return AlertDialog(
+                                            content: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: <Widget>[
+                                                TextButton(
+                                                  child: const Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      Text('디테일 뷰로 이동'),
+                                                      Icon(Icons
+                                                          .arrow_forward_ios_rounded),
+                                                    ],
+                                                  ),
+                                                  onPressed: () async {
+                                                    Navigator.pop(
+                                                        context); // 첫 번째 다이얼로그 닫기
+                                                    await Navigator.push(
                                                       context,
-                                                      assistant,
-                                                      false); // 삭제 확인 다이얼로그 띄우기
+                                                      MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            AssistantDetailsPage(
+                                                                assistant:
+                                                                    assistant),
+                                                      ),
+                                                    );
 
-                                                  _manualRefreshAssistants();
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                );
-                              }),
+                                                    _manualRefreshAssistants();
+                                                  },
+                                                ),
+                                                const Divider(),
+                                                TextButton(
+                                                  child: const Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      Text('삭제하기'),
+                                                      Icon(Icons.delete),
+                                                    ],
+                                                  ),
+                                                  onPressed: () async {
+                                                    Navigator.pop(
+                                                        context); // 첫 번째 다이얼로그 닫기
+                                                    await showDeleteDialog(
+                                                        context,
+                                                        assistant,
+                                                        false); // 삭제 확인 다이얼로그 띄우기
+
+                                                    _manualRefreshAssistants();
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                                  );
+                                }),
                               ..._localAssistants
                                   .where((local) => !snapshot.data!
                                       .map((a) => a.id)

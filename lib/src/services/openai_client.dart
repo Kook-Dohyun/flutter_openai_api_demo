@@ -245,14 +245,17 @@ class OpenAiClient {
   /// Threads
   // 1.Create a thread
   Future<Thread> createThread({
-    List<Map<String, dynamic>>? messages,
+    List<ReqMessage>? messages,
     Map<String, dynamic>? toolResources,
     Map<String, dynamic>? metadata,
   }) async {
     const endpoint = 'threads';
 
     Map<String, dynamic> requestBody = {
-      if (messages != null) 'messages': messages,
+      if (messages != null)
+        'messages': messages.map((e) {
+          e.toJson();
+        }).toList(),
       if (toolResources != null) 'tool_resources': toolResources,
       if (metadata != null) 'metadata': metadata,
     };

@@ -19,19 +19,19 @@ class SettingsService {
 
   /// API 키 리스트에서 모든 키를 불러옵니다.
   List<String> getApiKeys() {
-    return List<String>.from(
-        _settingsBox?.get(_apiKeys, defaultValue: []) ?? []);
+    return List<String>.from(_settingsBox?.get(_apiKeys, defaultValue: []));
   }
 
   /// 새 API 키를 리스트에 추가합니다.
   Future<void> addApiKey(String apiKey) async {
-    var apiKeys = getApiKeys();
-    apiKeys.add(apiKey);
-    await _settingsBox?.put(_apiKeys, apiKeys);
-    if (apiKeys.length == 1) {
-      // 첫 키라면 현재 API 키로 설정
-      await setCurrentApiKey(apiKey);
+    List<String> apiKeys = getApiKeys();
+    if (apiKeys.contains(apiKey)) {
+    } else {
+      apiKeys.add(apiKey);
     }
+    await _settingsBox?.put(_apiKeys, apiKeys);
+
+    await setCurrentApiKey(apiKey);
   }
 
   /// API 키를 삭제하고 첫 번째 키를 현재 API 키로 설정합니다.

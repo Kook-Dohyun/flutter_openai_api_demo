@@ -91,13 +91,11 @@ class SettingsController with ChangeNotifier {
     if (newApiKey.isEmpty) return false;
     bool isValid = await getModelListForValidateApiKey(newApiKey);
     if (isValid) {
-      if (newApiKey != _apiKey) {
-        _apiKey = newApiKey;
-        _openAiClient.updateApiKey(newApiKey);
-        await _settingsService.setCurrentApiKey(newApiKey);
-        _apiKeys = _settingsService.getApiKeys();
-        notifyListeners();
-      }
+      _openAiClient.updateApiKey(newApiKey);
+      await _settingsService.addApiKey(newApiKey);
+      _apiKeys = _settingsService.getApiKeys();
+      setCurrentApiKey(newApiKey);
+      notifyListeners();
       return true;
     } else {
       return false;
@@ -119,13 +117,9 @@ class SettingsController with ChangeNotifier {
   }
 
   Future<void> setCurrentApiKey(String? apiKey) async {
-    if (apiKey == null || !_apiKeys.contains(apiKey)) {
-      _apiKey = _apiKeys.isNotEmpty ? _apiKeys.first : null;
-    } else {
-      _apiKey = apiKey;
-    }
     await _settingsService.setCurrentApiKey(_apiKey);
-    if (_apiKey != null) {}
+    _apiKey = apiKey;
+
     notifyListeners();
   }
 

@@ -636,26 +636,26 @@ class FunctionDefinition {
 
 class ToolResources {
   final List<String>? codeInterpreterFileIds;
-  final List<String>? fileSearchVectorStoreIds;
+  final FileSearch? fileSearch;
 
   ToolResources({
     this.codeInterpreterFileIds,
-    this.fileSearchVectorStoreIds,
+    this.fileSearch,
   });
+
   Map<String, dynamic> toJson() {
     return {
-      'code_interpreter': {
-        'file_ids': codeInterpreterFileIds,
-      },
-      'file_search': {
-        'vector_store_ids': fileSearchVectorStoreIds,
-      },
+      if (codeInterpreterFileIds != null)
+        'code_interpreter': {
+          'file_ids': codeInterpreterFileIds,
+        },
+      if (fileSearch != null) 'file_search': fileSearch!.toJson(),
     };
   }
 
   factory ToolResources.fromJson(Map<String, dynamic> json) {
     List<String>? codeInterpreterFileIds;
-    List<String>? fileSearchVectorStoreIds;
+    FileSearch? fileSearch;
 
     if (json.containsKey('code_interpreter') &&
         json['code_interpreter'] != null) {
@@ -667,15 +667,42 @@ class ToolResources {
     }
 
     if (json.containsKey('file_search') && json['file_search'] != null) {
-      var fileSearchData = Map<String, dynamic>.from(json['file_search']);
-      fileSearchVectorStoreIds = fileSearchData['vector_store_ids'] != null
-          ? List<String>.from(fileSearchData['vector_store_ids'])
-          : null;
+      fileSearch =
+          FileSearch.fromJson(Map<String, dynamic>.from(json['file_search']));
     }
 
     return ToolResources(
       codeInterpreterFileIds: codeInterpreterFileIds,
-      fileSearchVectorStoreIds: fileSearchVectorStoreIds,
+      fileSearch: fileSearch,
+    );
+  }
+}
+
+class FileSearch {
+  final List<String>? vectorStoreIds;
+  final List<Map<String, dynamic>>? vectorStores;
+
+  FileSearch({
+    this.vectorStoreIds,
+    this.vectorStores,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (vectorStoreIds != null) 'vector_store_ids': vectorStoreIds,
+      if (vectorStores != null) 'vector_stores': vectorStores,
+    };
+  }
+
+  factory FileSearch.fromJson(Map<String, dynamic> json) {
+    return FileSearch(
+      vectorStoreIds: json['vector_store_ids'] != null
+          ? List<String>.from(json['vector_store_ids'])
+          : null,
+      vectorStores: json['vector_stores'] != null
+          ? List<Map<String, dynamic>>.from(json['vector_stores']
+              .map((item) => Map<String, dynamic>.from(item)))
+          : null,
     );
   }
 }
@@ -1232,5 +1259,3 @@ class AdditionalMessage {
         metadata: metadata);
   }
 }
-
-
