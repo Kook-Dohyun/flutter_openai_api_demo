@@ -1390,7 +1390,7 @@ class _ChatBubbleState extends State<ChatBubble> {
             scrollDirection: Axis.horizontal,
             primary: true,
             child: Consumer<ChatState>(builder: (context, chatState, child) {
-              return buildItem(chatState);
+              return replyItem(chatState);
             }),
           ),
         ),
@@ -1398,7 +1398,7 @@ class _ChatBubbleState extends State<ChatBubble> {
     );
   }
 
-  Widget buildItem(ChatState chatState) {
+  Widget replyItem(ChatState chatState) {
     List runMessages = chatState.getRunMessages(userMessage.id);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1493,28 +1493,26 @@ class _ChatBubbleState extends State<ChatBubble> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    _isSelectableAstText
-                                        ? Row(
-                                            children: [
-                                              const SizedBox(width: 18),
-                                              Text(
-                                                '텍스트선택',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .labelLarge,
-                                              ),
-                                              const Expanded(child: SizedBox()),
-                                              IconButton(
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      _isSelectableAstText =
-                                                          false;
-                                                    });
-                                                  },
-                                                  icon: const Icon(Icons.close))
-                                            ],
-                                          )
-                                        : const SizedBox(),
+                                    if (_isSelectableAstText)
+                                      Row(
+                                        children: [
+                                          const SizedBox(width: 18),
+                                          Text(
+                                            '텍스트선택',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelLarge,
+                                          ),
+                                          const Expanded(child: SizedBox()),
+                                          IconButton(
+                                              onPressed: () {
+                                                setState(() {
+                                                  _isSelectableAstText = false;
+                                                });
+                                              },
+                                              icon: const Icon(Icons.close))
+                                        ],
+                                      ),
                                     _isSelectableAstText
                                         ? Container(
                                             margin: const EdgeInsets.fromLTRB(
