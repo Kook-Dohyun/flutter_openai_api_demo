@@ -7,8 +7,7 @@ class SettingsService {
   static const String _currentApiKey = "apiKey"; // 현재 API 키
   static const String _baseUrl = "baseUrl";
   static const String _apiVersion = "apiVersion";
-  static const String _themeModeKey = "themeMode";
-  static const String _openedExpansionTile = 'openedExpansionTile';
+  static const String _themeModeKey = "themeMode"; 
 
   Box<dynamic>? _settingsBox;
 
@@ -83,18 +82,5 @@ class SettingsService {
   /// 테마 모드를 저장합니다.
   Future<void> setThemeMode(ThemeMode theme) async {
     await _settingsBox?.put(_themeModeKey, theme.toString());
-  }
-
-  Future<bool> getOpenedExpansionTile() async {
-    String? isOpend = _settingsBox?.get(_openedExpansionTile) as String?;
-
-    return isOpend == 'true' ? true : false;
-  }
-
-  Future<void> setOpenedExpansionTileState(bool value) async {
-    String str = value == true ? 'true' : 'false';
-    await _settingsBox?.put(_openedExpansionTile, str);
-    var d = _settingsBox?.get(_openedExpansionTile);
-    print('update!:$d');
   }
 }
