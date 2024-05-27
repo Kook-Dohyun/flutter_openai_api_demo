@@ -540,7 +540,7 @@ class OpenAiClient {
             }
             yield {'event': currentEvent, 'data': dataMap};
           } catch (e) {
-            print('Error parsing JSON data: $e');
+            rethrow;
           }
         }
       }
@@ -710,10 +710,8 @@ class OpenAiClient {
     final endpoint = 'threads/$threadId/runs/$runId/cancel';
 
     try {
-      print('cancel run');
       await _postRequest(endpoint, {}, true);
     } catch (e) {
-      print(e);
       rethrow;
     }
   }
@@ -811,9 +809,7 @@ class OpenAiClient {
     const endpoint = 'images/generations';
     Map<String, dynamic> requestBody = createImageRequest.toJson();
     try {
-      print('run');
       final json = await _postRequest(endpoint, requestBody, true);
-      print(json);
       return json;
     } catch (e) {
       rethrow;

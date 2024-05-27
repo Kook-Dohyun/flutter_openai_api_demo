@@ -2016,68 +2016,73 @@ class _ThreadsListPageState extends State<ThreadsListPage> {
           }
           if (snapshot.hasData) {
             List<Thread> threads = snapshot.data!;
-            return ListView.builder(
-              itemCount: threads.length,
-              itemBuilder: (context, index) {
-                Thread thread = threads[index];
-                if (thread.id == currentThreadId) {
+            if (snapshot.data!.isEmpty) {
+              return const Center(
+                  child: Text('No threads have been created yet'));
+            } else {
+              return ListView.builder(
+                itemCount: threads.length,
+                itemBuilder: (context, index) {
+                  Thread thread = threads[index];
+                  if (thread.id == currentThreadId) {
+                    return Slidable(
+                        key: ValueKey(thread.id),
+                        startActionPane: ActionPane(
+                            motion: const ScrollMotion(),
+                            dragDismissible: false,
+                            children: [
+                              SlidableAction(
+                                onPressed: (context) {
+                                  Navigator.pop(context, currentThreadId);
+                                },
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.onPrimary,
+                                foregroundColor: Colors.white,
+                                icon: Icons.arrow_back,
+                                label: 'Go back',
+                              ),
+                            ]),
+                        child: listTile(thread));
+                  }
                   return Slidable(
-                      key: ValueKey(thread.id),
-                      startActionPane: ActionPane(
-                          motion: const ScrollMotion(),
-                          dragDismissible: false,
-                          children: [
-                            SlidableAction(
-                              onPressed: (context) {
-                                Navigator.pop(context, currentThreadId);
-                              },
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.onPrimary,
-                              foregroundColor: Colors.white,
-                              icon: Icons.arrow_back,
-                              label: 'Go back',
-                            ),
-                          ]),
-                      child: listTile(thread));
-                }
-                return Slidable(
-                  key: ValueKey(thread.id),
-                  startActionPane: ActionPane(
-                    motion: const ScrollMotion(),
-                    dismissible: DismissiblePane(
-                      onDismissed: () async {
-                        await deleteThread(thread.id!);
-                        setState(() {
-                          threads.removeAt(index);
-                        });
-                      },
-                    ),
-                    children: [
-                      SlidableAction(
-                        onPressed: (context) async {
+                    key: ValueKey(thread.id),
+                    startActionPane: ActionPane(
+                      motion: const ScrollMotion(),
+                      dismissible: DismissiblePane(
+                        onDismissed: () async {
                           await deleteThread(thread.id!);
                           setState(() {
                             threads.removeAt(index);
                           });
                         },
-                        backgroundColor: const Color(0xFFFE4A49),
-                        foregroundColor: Colors.white,
-                        icon: Icons.delete,
-                        label: 'Delete',
                       ),
-                      const SlidableAction(
-                        onPressed: null,
-                        backgroundColor: Color(0xFF21B7CA),
-                        foregroundColor: Colors.white,
-                        icon: Icons.archive_rounded,
-                        label: 'Archive',
-                      ),
-                    ],
-                  ),
-                  child: listTile(thread),
-                );
-              },
-            );
+                      children: [
+                        SlidableAction(
+                          onPressed: (context) async {
+                            await deleteThread(thread.id!);
+                            setState(() {
+                              threads.removeAt(index);
+                            });
+                          },
+                          backgroundColor: const Color(0xFFFE4A49),
+                          foregroundColor: Colors.white,
+                          icon: Icons.delete,
+                          label: 'Delete',
+                        ),
+                        const SlidableAction(
+                          onPressed: null,
+                          backgroundColor: Color(0xFF21B7CA),
+                          foregroundColor: Colors.white,
+                          icon: Icons.archive_rounded,
+                          label: 'Archive',
+                        ),
+                      ],
+                    ),
+                    child: listTile(thread),
+                  );
+                },
+              );
+            }
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else {

@@ -111,14 +111,12 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
     }
     setState(() {
       cachedImageData;
-      loading = true;
+      loading = false;
     });
   }
 
   Future<void> updateImageStatus(
       {required int index, required SavedImageData savedData}) async {
-    var savedImageDataList = box.values.toList();
-
     if (index >= 0 && index < savedImageDataList.length) {
       await box.putAt(index, savedData.toJson());
     }
@@ -244,6 +242,21 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
       appBar: AppBar(
         title: const Text('Images'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite),
+            onPressed: () {
+              final likedImages =
+                  savedImageDataList.where((image) => image.isLiked).toList();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LikedImagesPage(
+                      likedImages: likedImages,
+                      updateImageStatus: updateImageStatus),
+                ),
+              );
+            },
+          ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(savedImageDataList.length.toString()),
@@ -254,171 +267,176 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
         child: Column(
           children: [
             Expanded(
-              child: loading
-                  ? ListView.builder(
-                      reverse: true,
-                      itemCount: savedImageDataList.length,
-                      itemBuilder: (context, ogIndex) {
-                        int index = savedImageDataList.length - 1 - ogIndex;
-                        SavedImageData savedData = savedImageDataList[index];
-                        ImageResponse response = savedData.imageResponse;
-                        return Column(children: <Widget>[
-                          ...response.data.map((ImageData imageData) {
-                            Uint8List? bytes = cachedImageData[index] ??
-                                (imageData.base64 != null
-                                    ? base64Decode(imageData.base64!)
-                                    : null);
+                child: loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                        reverse: true,
+                        itemCount: savedImageDataList.length,
+                        itemBuilder: (context, ogIndex) {
+                          int index = savedImageDataList.length - 1 - ogIndex;
+                          SavedImageData savedData = savedImageDataList[index];
+                          ImageResponse response = savedData.imageResponse;
+                          return Column(children: <Widget>[
+                            ...response.data.map((ImageData imageData) {
+                              Uint8List? bytes = cachedImageData[index] ??
+                                  (imageData.base64 != null
+                                      ? base64Decode(imageData.base64!)
+                                      : null);
 
-                            String imageUrl = imageData.url ?? '';
-                            return Column(
-                              children: [
-                                if (imageUrl.isNotEmpty)
-                                  Stack(
-                                    children: [
-                                      InkWell(
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  ImageViewPage(
-                                                imageUrl: imageUrl,
-                                                indexString: index.toString(),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        child: Hero(
-                                            tag: imageUrl + index.toString(),
-                                            child: Image.network(imageUrl)),
-                                      ),
-                                      IconButton(
-                                          onPressed: () async {
-                                            convertAndSaveImageUrlToBase64(
-                                                index: index,
-                                                imageUrl: imageUrl,
-                                                savedImageData: savedData);
-                                          },
-                                          iconSize: 40,
-                                          icon: const Icon(Icons.sync)),
-                                    ],
-                                  ),
-                                if (bytes != null)
-                                  Stack(
-                                    children: [
-                                      InkWell(
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
+                              String imageUrl = imageData.url ?? '';
+                              return Column(
+                                children: [
+                                  if (imageUrl.isNotEmpty)
+                                    Stack(
+                                      children: [
+                                        InkWell(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
                                                 builder: (context) =>
                                                     ImageViewPage(
-                                                      bytes: bytes,
-                                                      indexString:
-                                                          index.toString(),
-                                                    )),
-                                          );
-                                        },
-                                        child: Hero(
-                                            tag: bytes,
-                                            child: Image.memory(bytes)),
-                                      ),
+                                                  imageUrl: imageUrl,
+                                                  indexString: index.toString(),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: Hero(
+                                              tag: imageUrl + index.toString(),
+                                              child: Image.network(imageUrl)),
+                                        ),
+                                        IconButton(
+                                            onPressed: () async {
+                                              convertAndSaveImageUrlToBase64(
+                                                  index: index,
+                                                  imageUrl: imageUrl,
+                                                  savedImageData: savedData);
+                                            },
+                                            iconSize: 40,
+                                            icon: const Icon(Icons.sync)),
+                                      ],
+                                    ),
+                                  if (bytes != null)
+                                    Stack(
+                                      children: [
+                                        InkWell(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      ImageViewPage(
+                                                        bytes: bytes,
+                                                        indexString:
+                                                            index.toString(),
+                                                      )),
+                                            );
+                                          },
+                                          child: Hero(
+                                              tag: bytes,
+                                              child: Image.memory(bytes)),
+                                        ),
+                                      ],
+                                    ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      if (bytes != null) const Text('Base64'),
+                                      if (imageUrl.isNotEmpty)
+                                        const Text('URL'),
+                                      Text(
+                                          ' • ${timeInterpreter(response.created, format: 'yy-MM-dd•HH:mm:ss')} '),
                                     ],
                                   ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    if (bytes != null) const Text('Base64'),
-                                    if (imageUrl.isNotEmpty) const Text('URL'),
-                                    Text(
-                                        ' • ${timeInterpreter(response.created, format: 'yy-MM-dd•HH:mm:ss')} '),
-                                  ],
-                                ),
-                                TextButton(
-                                    onPressed: () {
-                                      bool contained = savedData.prompt
-                                          .contains(masterPrompt);
-                                      String text = savedData.prompt;
-                                      if (contained) {
-                                        setState(() {
-                                          applyMasterPrompt = true;
-                                          text = text.replaceFirst(
-                                              masterPrompt, '');
+                                  TextButton(
+                                      onPressed: () {
+                                        bool contained = savedData.prompt
+                                            .contains(masterPrompt);
+                                        String text = savedData.prompt;
+                                        if (contained) {
+                                          setState(() {
+                                            applyMasterPrompt = true;
+                                            text = text.replaceFirst(
+                                                masterPrompt, '');
+                                          });
+                                        }
+                                        textController.text = text;
+                                      },
+                                      onLongPress: () {
+                                        Clipboard.setData(ClipboardData(
+                                            text: savedData.prompt));
+                                      },
+                                      child: Text(savedData.prompt)),
+                                  TextButton(
+                                      onPressed: () {
+                                        textController.text =
+                                            imageData.revisedPrompt!;
+                                      },
+                                      onLongPress: () {
+                                        Clipboard.setData(ClipboardData(
+                                            text:
+                                                imageData.revisedPrompt ?? ''));
+                                      },
+                                      child:
+                                          Text(imageData.revisedPrompt ?? '')),
+                                  Row(children: [
+                                    IconButton(
+                                      iconSize: 30,
+                                      icon: const Icon(Icons.download_rounded),
+                                      onPressed: () async {
+                                        if (imageData.base64 != null) {
+                                          await openai.saveBase64Image(
+                                              imageData.base64!);
+                                        }
+                                        if (imageUrl.isNotEmpty) {
+                                          await openai
+                                              .saveNetworkImage(imageUrl);
+                                        }
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((timeStamp) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text('Image saved '),
+                                          ));
                                         });
-                                      }
-                                      textController.text = text;
-                                    },
-                                    onLongPress: () {
-                                      Clipboard.setData(ClipboardData(
-                                          text: savedData.prompt));
-                                    },
-                                    child: Text(savedData.prompt)),
-                                TextButton(
-                                    onPressed: () {
-                                      textController.text =
-                                          imageData.revisedPrompt!;
-                                    },
-                                    onLongPress: () {
-                                      Clipboard.setData(ClipboardData(
-                                          text: imageData.revisedPrompt ?? ''));
-                                    },
-                                    child: Text(imageData.revisedPrompt ?? '')),
-                                Row(children: [
-                                  IconButton(
-                                    iconSize: 30,
-                                    icon: const Icon(Icons.download_rounded),
-                                    onPressed: () async {
-                                      if (imageData.base64 != null) {
-                                        await openai
-                                            .saveBase64Image(imageData.base64!);
-                                      }
-                                      if (imageUrl.isNotEmpty) {
-                                        await openai.saveNetworkImage(imageUrl);
-                                      }
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((timeStamp) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(const SnackBar(
-                                          content: Text('Image saved '),
-                                        ));
-                                      });
-                                    },
-                                  ),
-                                  IconButton(
-                                    iconSize: 30,
-                                    icon: Icon(
-                                      savedData.isLiked
-                                          ? Icons.favorite
-                                          : Icons.favorite_border,
-                                      color:
-                                          savedData.isLiked ? Colors.red : null,
+                                      },
                                     ),
-                                    onPressed: () {
-                                      setState(() {
-                                        savedData.isLiked = !savedData.isLiked;
-                                        updateImageStatus(
-                                            index: index,
-                                            savedData:
-                                                savedData); // 업데이트된 상태를 저장
-                                      });
-                                    },
-                                  ),
-                                  IconButton(
-                                    iconSize: 30,
-                                    icon: const Icon(Icons.delete),
-                                    onPressed: () async {
-                                      await deleteImage(index: index);
-                                    },
-                                  ),
-                                ]),
-                              ],
-                            );
-                          }),
-                        ]);
-                      },
-                    )
-                  : const Center(child: CircularProgressIndicator()),
-            ),
+                                    IconButton(
+                                      iconSize: 30,
+                                      icon: Icon(
+                                        savedData.isLiked
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        color: savedData.isLiked
+                                            ? Colors.red
+                                            : null,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          savedData.isLiked =
+                                              !savedData.isLiked;
+                                          updateImageStatus(
+                                              index: index,
+                                              savedData:
+                                                  savedData); // 업데이트된 상태를 저장
+                                        });
+                                      },
+                                    ),
+                                    IconButton(
+                                      iconSize: 30,
+                                      icon: const Icon(Icons.delete),
+                                      onPressed: () async {
+                                        await deleteImage(index: index);
+                                      },
+                                    ),
+                                  ]),
+                                ],
+                              );
+                            }),
+                          ]);
+                        },
+                      )),
             if (errorMessage != null)
               Text(
                 errorMessage!,
@@ -427,6 +445,7 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     focusNode: _focusNode,
@@ -625,7 +644,7 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
                         ),
                       const SizedBox(height: 10),
                     ],
-                  )
+                  ).animate().moveY(begin: 100, curve: Curves.easeIn)
                 ],
               ),
             ),
@@ -677,6 +696,90 @@ class ImageViewPage extends StatelessWidget {
         maxScale: PhotoViewComputedScale.covered * 2,
         enableRotation: true, // 이미지 회전 기능 활성화
       ),
+    );
+  }
+}
+
+class LikedImagesPage extends StatefulWidget {
+  final List<SavedImageData> likedImages;
+  final Function({required int index, required SavedImageData savedData})
+      updateImageStatus;
+
+  const LikedImagesPage(
+      {super.key, required this.likedImages, required this.updateImageStatus});
+
+  @override
+  State<LikedImagesPage> createState() => _LikedImagesPageState();
+}
+
+class _LikedImagesPageState extends State<LikedImagesPage> {
+  Map<int, Uint8List?> cachedImageData = {};
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cacheImageData();
+  }
+
+  void _cacheImageData() {
+    for (int i = 0; i < widget.likedImages.length; i++) {
+      for (var imageData in widget.likedImages[i].imageResponse.data) {
+        if (imageData.base64 != null) {
+          cachedImageData[i] = base64Decode(imageData.base64!);
+        }
+      }
+    }
+    setState(() {
+      loading = false;
+    });
+  }
+
+  // TODO notWork function
+  void _unlikeImage(int index) {
+    setState(() {
+      SavedImageData savedImageData = widget.likedImages[index];
+      savedImageData.isLiked = false;
+      widget.updateImageStatus(index: index, savedData: savedImageData);
+      // widget.likedImages.removeAt(index);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Liked Images'),
+      ),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : widget.likedImages.isEmpty
+              ? const Center(child: Text('No liked images'))
+              : ListView.builder(
+                  itemCount: widget.likedImages.length,
+                  itemBuilder: (context, index) {
+                    final image = widget.likedImages[index];
+                    final imageData = image.imageResponse.data.first;
+                    final bytes = cachedImageData[index];
+                    final imageUrl = imageData.url ?? '';
+
+                    return Column(
+                      children: [
+                        if (imageUrl.isNotEmpty) Image.network(imageUrl),
+                        if (bytes != null) Image.memory(bytes),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(image.prompt),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.favorite),
+                          color: Colors.red,
+                          onPressed: () => _unlikeImage(index),
+                        ),
+                      ],
+                    );
+                  },
+                ),
     );
   }
 }
