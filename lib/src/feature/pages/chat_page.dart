@@ -384,7 +384,7 @@ class _ChatPageState extends State<ChatPage> {
         break;
 
       case 'thread.message.delta':
-        HapticFeedback.vibrate();
+        HapticFeedback.lightImpact();
         _chatState!.setStreamingText(_chatState!.streamingText +
             data['delta']['content'][0]['text']['value']);
         break;
@@ -1195,16 +1195,16 @@ class _ChatBubbleState extends State<ChatBubble> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _chatState ??= Provider.of<ChatState>(context, listen: false);
+        final settingsController =
+            Provider.of<SettingsController>(context, listen: false);
+        setState(() {
+          _openai = settingsController.openAiClient;
+          final apiKey = settingsController.apiKey!;
+          final user = settingsController.currentUser!;
+          _chatState!.subscribeToRuns(user.uid, apiKey, assistantId,
+              userMessage.threadId, userMessage.id);
+        });
       }
-      final settingsController =
-          Provider.of<SettingsController>(context, listen: false);
-      setState(() {
-        _openai = settingsController.openAiClient;
-        final apiKey = settingsController.apiKey!;
-        final user = settingsController.currentUser!;
-        _chatState!.subscribeToRuns(user.uid, apiKey, assistantId,
-            userMessage.threadId, userMessage.id);
-      });
     });
   }
 
