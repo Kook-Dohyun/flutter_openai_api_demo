@@ -1193,7 +1193,9 @@ class _ChatBubbleState extends State<ChatBubble> {
     super.initState();
     initializeUserContentText();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _chatState ??= Provider.of<ChatState>(context, listen: false);
+      if (mounted) {
+        _chatState ??= Provider.of<ChatState>(context, listen: false);
+      }
       final settingsController =
           Provider.of<SettingsController>(context, listen: false);
       setState(() {
