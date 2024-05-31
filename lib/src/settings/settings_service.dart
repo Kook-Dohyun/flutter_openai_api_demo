@@ -8,6 +8,7 @@ class SettingsService {
   static const String _baseUrl = "baseUrl";
   static const String _apiVersion = "apiVersion";
   static const String _themeModeKey = "themeMode"; 
+  static const String _seedColorKey = "seedColorKey";
 
   Box<dynamic>? _settingsBox;
 
@@ -68,8 +69,7 @@ class SettingsService {
   Future<void> setApiVersion(String? apiVersion) async {
     await _settingsBox?.put(_apiVersion, apiVersion);
   }
-
-  /// 사용자의 선호 테마 모드를 불러옵니다.
+ 
   Future<ThemeMode> getThemeMode() async {
     String? themeStr = _settingsBox?.get(_themeModeKey) as String?;
     return themeStr == 'ThemeMode.dark'
@@ -78,9 +78,25 @@ class SettingsService {
             ? ThemeMode.light
             : ThemeMode.system;
   }
-
-  /// 테마 모드를 저장합니다.
+ 
   Future<void> setThemeMode(ThemeMode theme) async {
     await _settingsBox?.put(_themeModeKey, theme.toString());
   }
+
+  Future<void> setSeedColor(String seedColorKey) async {
+  await _settingsBox?.put(_seedColorKey, seedColorKey);
 }
+
+Future<Color> getSeedColor() async {
+  final Map<String, Color> colorMap = {
+  'blue': Colors.blue,
+  'purple': Colors.deepPurple,
+  'pink': Colors.pink,
+  'green': Colors.greenAccent,
+};
+  final seedColorKey = _settingsBox?.get(_seedColorKey, defaultValue: 'blue'); // 기본값 추가
+  return colorMap[seedColorKey]!;
+}
+
+}
+

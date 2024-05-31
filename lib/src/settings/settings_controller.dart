@@ -14,6 +14,7 @@ class SettingsController with ChangeNotifier {
 
   User? _currentUser;
   late ThemeMode _themeMode;
+  Color? _seedColor;
   List<String> _apiKeys = [];
   String? _apiKey;
   String? _baseUrl;
@@ -26,16 +27,18 @@ class SettingsController with ChangeNotifier {
   User? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null; // 로그인 상태 가져오기
   ThemeMode get themeMode => _themeMode;
+  Color get seedColor => _seedColor!;
+  ColorScheme get colorScheme => ColorScheme.fromSeed(seedColor: seedColor);
   List<String> get apiKeys => _apiKeys;
   String? get apiKey => _apiKey;
   String? get baseUrl => _baseUrl;
   String? get apiVersion => _apiVersion;
   OpenAiClient get openAiClient => _openAiClient;
 
-  ////////////////////////////////////////////////////////////////
   Future<void> loadSettings() async {
     await _settingsService.initHive(); // Initialize Hive
     _themeMode = await _settingsService.getThemeMode();
+    _seedColor = await _settingsService.getSeedColor();
     _apiKeys = _settingsService.getApiKeys();
     _apiKey = await _settingsService.getCurrentApiKey();
     _baseUrl = await _settingsService.getBaseUrl();
@@ -48,6 +51,7 @@ class SettingsController with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Login
   ////////////////////////////////////////////////////////////////
   void _updateLoginStatus(User? user) {
     _currentUser = user;
@@ -76,6 +80,7 @@ class SettingsController with ChangeNotifier {
     await _firestore.collection(_currentUser!.uid).doc(apiKey).delete();
   }
 
+  /// Theme
   ////////////////////////////////////////////////////////////////
   Future<void> updateThemeMode(ThemeMode? newThemeMode) async {
     if (newThemeMode == null) return;
@@ -84,6 +89,11 @@ class SettingsController with ChangeNotifier {
       await _settingsService.setThemeMode(newThemeMode);
       notifyListeners();
     }
+  }
+
+  Future<void> updateSeedColorKey(String seedColorKey) async {
+    await _settingsService.setSeedColor(seedColorKey);
+    notifyListeners();
   }
 
   ////////////////////////////////////////////////////////////////
