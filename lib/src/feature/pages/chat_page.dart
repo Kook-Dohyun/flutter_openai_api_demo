@@ -323,6 +323,7 @@ class _ChatPageState extends State<ChatPage> {
     _chatState!.setStreamingText('');
     _chatState!.removeAdditionalMessages();
     _chatState!.applyInstruction(false);
+    _chatState!.setError(false);
     setState(() {
       topP = _assistant.topP!.toDouble();
       temperature = _assistant.temperature!.toDouble();
@@ -362,7 +363,7 @@ class _ChatPageState extends State<ChatPage> {
       case 'thread.run.failed':
         _chatState!.setRun(Run.fromJson(data));
         _chatState!.setErrorMessage(data['last_error']['code']);
-        _chatState!.setRateLimitExceeded(true);
+        _chatState!.setError(true);
         _chatState!.setMessaging(false);
         break;
       case 'thread.run.step.created':
@@ -924,13 +925,13 @@ class _ChatPageState extends State<ChatPage> {
                   decoration: InputDecoration(
                     // prefixIcon: const Icon(Icons.star),
                     hintFadeDuration: const Duration(milliseconds: 300),
-                    hintText: chatState.rateLimitExceeded
+                    hintText: chatState.error
                         ? chatState.errorMessage
                         : chatState.threadDismissed
                             ? 'ThreadDismissed!'
                             : 'Message',
                     hintStyle: TextStyle(
-                      color: chatState.rateLimitExceeded
+                      color: chatState.error
                           ? Theme.of(context).colorScheme.errorContainer
                           : Theme.of(context).textTheme.bodySmall!.color,
                     ),
@@ -985,7 +986,7 @@ class _ChatPageState extends State<ChatPage> {
                                   ),
                           )
                         : IconButton(
-                            icon: chatState.rateLimitExceeded
+                            icon: chatState.error
                                 ? Icon(
                                     FontAwesomeIcons.circleExclamation,
                                     size: rightIconSize,

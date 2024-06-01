@@ -43,6 +43,35 @@ class SettingDrawer extends StatelessWidget {
               ],
             ),
           ),
+          Row(
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(15, 8, 8, 8),
+                child: Text('Theme: '),
+              ),
+              ...controller.colorMap.entries.map((entry) {
+                return IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(2), // 아이콘과 테두리 간의 간격 조절
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border:
+                          controller.seedColor == entry.value // 현재 선택된 색상 확인
+                              ? Border.all(
+                                  color: Colors.white,
+                                  width: 2) // 선택 시 하얀 테두리 적용
+                              : null, // 선택되지 않은 색상에는 테두리 없음
+                    ),
+                    child:
+                        Icon(Icons.circle, color: entry.value), // 원형 아이콘과 해당 컬러
+                  ),
+                  onPressed: () {
+                    controller.updateSeedColorKey(entry.key); // 버튼 탭 시 호출
+                  },
+                );
+              })
+            ],
+          ),
           const Divider(),
           ListTile(
             leading: const Text('Base URL: '),

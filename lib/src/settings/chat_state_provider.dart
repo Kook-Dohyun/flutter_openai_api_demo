@@ -12,7 +12,7 @@ class ChatState extends ChangeNotifier {
   bool _editMessageMode = false;
   int? _editIndex = 0;
   bool _showController = false;
-  bool _rateLimitExceeded = false;
+  bool _error = false;
   String _errorMessage = '';
   bool _threadDismissed = false;
   bool _emptyThread = true;
@@ -34,7 +34,7 @@ class ChatState extends ChangeNotifier {
   bool get editMessageMode => _editMessageMode;
   int? get editIndex => _editIndex;
   bool get showController => _showController;
-  bool get rateLimitExceeded => _rateLimitExceeded;
+  bool get error => _error;
   String get errorMessage => _errorMessage;
   bool get threadDismissed => _threadDismissed;
   bool get emptyThread => _emptyThread;
@@ -81,8 +81,8 @@ class ChatState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setRateLimitExceeded(bool value) {
-    _rateLimitExceeded = value;
+  void setError(bool value) {
+    _error = value;
     notifyListeners();
   }
 
@@ -155,7 +155,7 @@ class ChatState extends ChangeNotifier {
     _editIndex = null;
     _showController = false;
     _editMessageMode = false;
-    _rateLimitExceeded = false;
+    _error = false;
     _errorMessage = '';
     _threadDismissed = false;
     _emptyThread = true;
