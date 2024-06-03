@@ -14,6 +14,7 @@ import 'package:openai/src/services/assistant_response_classes.dart';
 import 'package:openai/src/settings/chat_state_provider.dart';
 import 'package:openai/src/settings/settings_controller.dart';
 import 'package:provider/provider.dart';
+import 'dart:ui' as ui;
 
 class ChatPage extends StatefulWidget {
   final String? threadID;
@@ -429,7 +430,17 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              color: Colors.black.withOpacity(0.2),
+            ),
+          ),
+        ),
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
