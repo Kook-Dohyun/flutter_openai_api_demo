@@ -28,10 +28,11 @@ class SettingsController with ChangeNotifier {
   bool get isLoggedIn => _currentUser != null; // 로그인 상태 가져오기
   ThemeMode get themeMode => _themeMode;
   Color get seedColor => _seedColor!;
-  ColorScheme get colorScheme => ColorScheme.fromSeed(
-      seedColor: seedColor,
-      brightness:
-          (themeMode == ThemeMode.dark) ? Brightness.dark : Brightness.light);
+  ColorScheme get colorSchemeLitght =>
+      ColorScheme.fromSeed(seedColor: seedColor, brightness: Brightness.light);
+  ColorScheme get colorSchemeDark =>
+      ColorScheme.fromSeed(seedColor: seedColor, brightness: Brightness.dark);
+
   Map<String, dynamic> get colorMap => _settingsService.colorMap;
   List<String> get apiKeys => _apiKeys;
   String? get apiKey => _apiKey;

@@ -7,7 +7,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:openai/src/feature/seperate_pages/api_list_messages.dart';
 import 'package:openai/src/feature/seperate_pages/assistant_detail_page.dart';
 import 'package:openai/src/services/openai_client.dart';
 import 'package:openai/src/services/assistant_response_classes.dart';
@@ -74,6 +73,8 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void dispose() {
     _textController.dispose();
+    _scrollController.removeListener(_updateStream);
+    _scrollController.dispose();
     if (_chatState != null) {
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -102,6 +103,20 @@ class _ChatPageState extends State<ChatPage> {
       _messagesStream =
           messageService.messageStream(_chatState!.limitListItems); // 스트림 업데이트
     }
+    if (_scrollController.offset - 100 >
+        _scrollController.position.minScrollExtent) {
+      _chatState!.setIsBottom(false);
+    } else {
+      _chatState!.setIsBottom(true);
+    }
+  }
+
+  void _scrollToBottom() {
+    _scrollController.animateTo(
+      _scrollController.position.minScrollExtent,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   void collectionSet(String threadId) {
@@ -325,10 +340,12 @@ class _ChatPageState extends State<ChatPage> {
     _chatState!.removeAdditionalMessages();
     _chatState!.applyInstruction(false);
     _chatState!.setError(false);
+
     setState(() {
       topP = _assistant.topP!.toDouble();
       temperature = _assistant.temperature!.toDouble();
     });
+    _scrollToBottom();
     eventStream.listen((eventData) {
       handleEvent(userMessage, eventData['event'], eventData['data']);
     });
@@ -416,8 +433,6 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-//TODO 만료된 쓰레드에서 이어서 대화하기 기능 추가.
-
   Widget iconRow() {
     return Row(
       children: <Widget>[
@@ -437,48 +452,62 @@ class _ChatPageState extends State<ChatPage> {
           child: BackdropFilter(
             filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
             child: Container(
-              color: Colors.black.withOpacity(0.2),
+              color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.1),
             ),
           ),
         ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Expanded(
-              child: Text(
-                _assistant.name!,
-                textWidthBasis: TextWidthBasis.parent,
-                overflow: TextOverflow.ellipsis,
-              ),
+        systemOverlayStyle: Theme.of(context).brightness == Brightness.dark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
+        title: TooltipTheme(
+          data: const TooltipThemeData(
+            showDuration: Duration(seconds: 3),
+            waitDuration: Duration(seconds: 1),
+          ),
+          child: Tooltip(
+            message: _isInstanceReady
+                ? 'assistant_id: ${widget.assistant.id}\nthread_id: $threadId'
+                : '',
+            onTriggered: () {},
+            triggerMode: TooltipTriggerMode.tap,
+            child: Text(
+              _assistant.name!,
+              textWidthBasis: TextWidthBasis.parent,
+              overflow: TextOverflow.ellipsis,
             ),
-            Tooltip(
-              message: _isInstanceReady
-                  ? 'assistant_id: ${widget.assistant.id}\nthread_id: $threadId'
-                  : '',
-              onTriggered: () {},
-              triggerMode: TooltipTriggerMode.tap,
-              child: const Icon(
-                Icons.info,
-                size: 20,
-              ),
-            ),
-          ],
+          ),
         ),
         actions: [
           IconButton(
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            ListMessages(openai: _openai, threadId: threadId)));
-              },
-              icon: const Icon(Icons.history_rounded)),
+            onPressed: () {
+              _isInstanceReady ? openThreadsList() : null;
+            },
+            icon: const Icon(Icons.history_rounded),
+          ),
           PopupMenuButton(itemBuilder: (context) {
             return [
-              const PopupMenuItem<int>(value: 0, child: Text('Assistant Info')),
-              const PopupMenuItem<int>(value: 1, child: Text('Thread List')),
-              const PopupMenuItem<int>(value: 2, child: Text("Thread Delete")),
+              const PopupMenuItem<int>(
+                value: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Icon(Icons.info),
+                    Text('Assistant Info'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<int>(
+                value: 1,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Icon(Icons.delete),
+                    Text("Thread Delete"),
+                  ],
+                ),
+              ),
             ];
           }, onSelected: (value) {
             if (value == 0) {
@@ -490,8 +519,6 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ));
             } else if (value == 1) {
-              _isInstanceReady ? openThreadsList() : null;
-            } else if (value == 2) {
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
@@ -550,26 +577,49 @@ class _ChatPageState extends State<ChatPage> {
                                 child: Icon(Icons.format_quote_rounded),
                               );
                             } else {
-                              return ListView.builder(
-                                controller: _scrollController,
-                                itemCount: chatState.userMessageList!.length,
-                                reverse: true,
-                                itemBuilder: (context, index) {
-                                  Message message =
-                                      chatState.userMessageList![index];
+                              return Stack(
+                                children: [
+                                  ListView.builder(
+                                    controller: _scrollController,
+                                    itemCount:
+                                        chatState.userMessageList!.length,
+                                    reverse: true,
+                                    itemBuilder: (context, index) {
+                                      Message message =
+                                          chatState.userMessageList![index];
 
-                                  return ChatBubble(
-                                    key: ValueKey(message.id),
-                                    regenerateFunction: regenMessage,
-                                    createReqMessage: createReqMessage,
-                                    chatState: chatState,
-                                    textController: _textController,
-                                    assistantId: _assistant.id,
-                                    index: index,
-                                    message: message,
-                                    messageService: messageService,
-                                  );
-                                },
+                                      return ChatBubble(
+                                        key: ValueKey(message.id),
+                                        regenerateFunction: regenMessage,
+                                        createReqMessage: createReqMessage,
+                                        chatState: chatState,
+                                        textController: _textController,
+                                        assistantId: _assistant.id,
+                                        index: index,
+                                        message: message,
+                                        messageService: messageService,
+                                      );
+                                    },
+                                  ),
+                                  if (!chatState.isBottom)
+                                    Align(
+                                      alignment: Alignment.bottomCenter,
+                                      child: FloatingActionButton(
+                                        mini: true,
+                                        tooltip: 'Scroll To Bottom',
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondary,
+                                        foregroundColor: Theme.of(context)
+                                            .scaffoldBackgroundColor,
+                                        onPressed: () {
+                                          _scrollToBottom();
+                                        },
+                                        child: const Icon(
+                                            Icons.arrow_downward_rounded),
+                                      ).animate().fadeIn(),
+                                    )
+                                ],
                               );
                             }
                           } else {
@@ -1017,21 +1067,24 @@ class _ChatPageState extends State<ChatPage> {
                                     [TextContent(value: text)],
                                     role: Role.user);
                                 if (chatState.editMessageMode) {
-                                  (await regenMessage(
-                                      oldMessage: chatState.userMessage!,
-                                      index: chatState.editIndex!,
-                                      request: _request,
-                                      editMode: true,
-                                      topP: topP,
-                                      temperature: temperature,
-                                      additionalMessages: chatState
-                                              .additionalMessages.isNotEmpty
-                                          ? chatState.additionalMessages
-                                          : null,
-                                      additionalInstructions: chatState
-                                              .additionalInstructions.isNotEmpty
-                                          ? chatState.additionalInstructions
-                                          : null));
+                                  (chatState.userMessage != null
+                                      ? regenMessage(
+                                          oldMessage: chatState.userMessage!,
+                                          index: chatState.editIndex!,
+                                          request: _request,
+                                          editMode: true,
+                                          topP: topP,
+                                          temperature: temperature,
+                                          additionalMessages: chatState
+                                                  .additionalMessages.isNotEmpty
+                                              ? chatState.additionalMessages
+                                              : null,
+                                          additionalInstructions: chatState
+                                                  .additionalInstructions
+                                                  .isNotEmpty
+                                              ? chatState.additionalInstructions
+                                              : null)
+                                      : chatState.setEditMode(value: false));
                                   setState(() {
                                     topP = _assistant.topP!.toDouble();
                                     temperature =
@@ -1066,7 +1119,8 @@ class _ChatPageState extends State<ChatPage> {
                         icon: Icon(
                           Icons.add_circle_rounded,
                           size: rightIconSize,
-                        )),
+                        ),
+                      ),
               ],
             ),
           ],

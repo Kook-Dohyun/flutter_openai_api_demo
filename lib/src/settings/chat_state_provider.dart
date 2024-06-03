@@ -26,6 +26,7 @@ class ChatState extends ChangeNotifier {
   bool _applyAdditionalInstructions = false;
   Map<String, StreamSubscription> runSubscriptions = {};
   Map<String, List<Map<Run, Message>>> runMessagesById = {};
+  bool _isBottom = true;
 
   String get streamingText => _streamingText;
   int get limitListItems => _limitListItems;
@@ -46,6 +47,7 @@ class ChatState extends ChangeNotifier {
   String get additionalInstructions => _additionalInstructions;
   String get tempInstructions => _tempInstructions;
   bool get applyAdditionalInstructions => _applyAdditionalInstructions;
+  bool get isBottom => _isBottom;
 
   void setStreamingText(String text) {
     _streamingText = text;
@@ -147,6 +149,11 @@ class ChatState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setIsBottom(bool value) {
+    _isBottom = value;
+    notifyListeners();
+  }
+
   void resetState() {
     _streamingText = '';
     _limitListItems = 0;
@@ -164,6 +171,7 @@ class ChatState extends ChangeNotifier {
     _resRun = null;
     _applyAdditionalInstructions = false;
     _additionalInstructions = '';
+    _isBottom = true;
     removeAdditionalMessages();
     notifyListeners();
   }

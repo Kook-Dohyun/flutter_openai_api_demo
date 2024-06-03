@@ -31,7 +31,12 @@ class MyApp extends StatelessWidget {
           onGenerateTitle: (BuildContext context) =>
               AppLocalizations.of(context)!.appTitle,
           theme: ThemeData(
-              useMaterial3: true, colorScheme: settingsController.colorScheme),
+              useMaterial3: true,
+              colorScheme: settingsController.colorSchemeLitght),
+          darkTheme: ThemeData(
+              useMaterial3: true,
+              colorScheme: settingsController.colorSchemeDark),
+          themeMode: settingsController.themeMode,
           home: (settingsController.isLoggedIn &&
                   settingsController.apiKey != null)
               ? const HomePage()
