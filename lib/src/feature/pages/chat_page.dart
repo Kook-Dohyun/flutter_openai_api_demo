@@ -15,6 +15,8 @@ import 'package:openai/src/settings/settings_controller.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui' as ui;
 
+import '../seperate_pages/document_editor_page.dart';
+
 class ChatPage extends StatefulWidget {
   final String? threadID;
   final Assistant assistant;
@@ -39,7 +41,6 @@ class _ChatPageState extends State<ChatPage> {
   bool _isInstanceReady = false;
   late Stream<List<Message>> _messagesStream;
   ChatState? _chatState;
-  bool _showAdditionIcons = false;
   late ReqMessage _request;
   late double temperature = _assistant.temperature!.toDouble();
   late double topP = _assistant.topP!.toDouble();
@@ -640,38 +641,103 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget customTextField() {
-    return Consumer<ChatState>(builder: (context, chatState, child) {
-      double rightIconSize = 35;
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(10, 5, 10, 10),
-        child: Column(
-          children: [
-            if (chatState.showController)
-              Theme(
-                data: ThemeData.light(),
-                child: IntrinsicWidth(
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.inverseSurface,
-                        borderRadius: BorderRadius.circular(15)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              chatState.editMessageMode
-                                  ? 'Edit Message'
-                                  : 'Controller',
-                              style: TextStyle(
-                                  color:
-                                      Theme.of(context).scaffoldBackgroundColor,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            IconButton(
+    final GlobalKey textFieldKey = GlobalKey();
+    double lastKnownHeight = 0.0;
+    bool showAdditionIcons = false;
+
+    double checkHeightAndUpdate(BuildContext context) {
+      final RenderBox renderBox =
+          textFieldKey.currentContext!.findRenderObject() as RenderBox;
+      return renderBox.size.height;
+    }
+
+    Future<void> tokenSetter({
+      required BuildContext context,
+      required void Function(int?) tokenSetterOption,
+      required int? tokenType,
+      required String title,
+    }) async {
+      showDialog(
+        context: context,
+        builder: (context) {
+          int? tokens;
+          return AlertDialog(
+            title: Text('Set Max $title Tokens'),
+            content: TextField(
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration:
+                  InputDecoration(hintText: tokenType?.toString() ?? ''),
+              onChanged: (value) {
+                if (value.toString().isNotEmpty) {
+                  tokens = int.parse(value);
+                } else {
+                  tokens = null;
+                }
+              },
+              onSubmitted: (value) {
+                tokenSetterOption(int.parse(value));
+                Navigator.pop(context);
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  tokens = null;
+                  tokenSetterOption(tokens);
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  tokenSetterOption(tokens);
+                  Navigator.pop(context);
+                },
+                child: const Text('Set'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+      return Consumer<ChatState>(
+          builder: (BuildContext context, ChatState chatState, Widget? child) {
+        double rightIconSize = 35;
+        return Padding(
+          key: textFieldKey,
+          padding: const EdgeInsets.fromLTRB(10, 5, 10, 10),
+          child: Column(
+            children: [
+              if (chatState.showController)
+                Theme(
+                  data: ThemeData.light(),
+                  child: IntrinsicWidth(
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.inverseSurface,
+                          borderRadius: BorderRadius.circular(15)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                chatState.editMessageMode
+                                    ? 'Edit Message'
+                                    : 'Controller',
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .scaffoldBackgroundColor,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              IconButton(
                                 onPressed: () {
                                   if (chatState.editMessageMode) {
                                     _textController.text = '';
@@ -682,450 +748,452 @@ class _ChatPageState extends State<ChatPage> {
                                     Theme.of(context).scaffoldBackgroundColor,
                                 icon: const Icon(Icons.cancel)
                                     .animate()
-                                    .fadeIn(duration: 200.ms)),
-                          ],
-                        ),
-                        if (chatState.editMessageMode)
-                          Text(
-                            chatState.userMessage?.id ?? '',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color:
-                                    Theme.of(context).scaffoldBackgroundColor),
-                          ),
-                        const SizedBox(
-                          height: 4,
-                        ),
-                        Row(
-                          children: [
-                            Text('top_p: $topP',
-                                style: TextStyle(
-                                    color: Theme.of(context)
-                                        .scaffoldBackgroundColor)),
-                          ],
-                        ),
-                        SizedBox(
-                          height: 20,
-                          child: Row(
-                            children: [
-                              Slider(
-                                value: topP,
-                                max: 1,
-                                divisions: 100,
-                                onChanged: (value) {
-                                  setState(() {
-                                    topP = value;
-                                  });
-                                },
-                                label: topP.toString(),
-                                secondaryTrackValue:
-                                    _assistant.topP!.toDouble(),
+                                    .fadeIn(duration: 200.ms),
                               ),
-                              if (topP != _assistant.topP!.toDouble())
-                                GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        topP = _assistant.topP!.toDouble();
-                                      });
-                                    },
-                                    child: const Icon(
-                                        Icons.settings_backup_restore_rounded)),
                             ],
                           ),
-                        ),
-                        Text('temperature: $temperature',
-                            style: TextStyle(
-                                color:
-                                    Theme.of(context).scaffoldBackgroundColor)),
-                        SizedBox(
-                          height: 20,
-                          child: Row(
+                          if (chatState.editMessageMode)
+                            Text(
+                              chatState.userMessage?.id ?? '',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(context)
+                                      .scaffoldBackgroundColor),
+                            ),
+                          const SizedBox(
+                            height: 4,
+                          ),
+                          Row(
                             children: [
-                              Slider(
-                                value: temperature,
-                                max: 2,
-                                divisions: 200,
-                                onChanged: (value) {
-                                  setState(() {
-                                    temperature = value;
-                                  });
-                                },
-                                label: temperature.toString(),
-                                secondaryTrackValue:
-                                    _assistant.temperature!.toDouble(),
-                              ),
-                              if (temperature !=
-                                  _assistant.temperature!.toDouble())
-                                GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        temperature =
-                                            _assistant.temperature!.toDouble();
-                                      });
-                                    },
-                                    child: const Icon(
-                                        Icons.settings_backup_restore_rounded))
+                              Text('top_p: $topP',
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .scaffoldBackgroundColor)),
                             ],
                           ),
-                        ),
-                        const SizedBox(
-                          height: 8,
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            showDialog(
-                                context: context,
-                                builder: (context) {
-                                  int? tokens;
-                                  return AlertDialog(
-                                    title: const Text('Set Max Prompt Tokens'),
-                                    content: TextField(
-                                      keyboardType: TextInputType.number,
-                                      autofocus: true,
-                                      onChanged: (value) {
-                                        if (value.toString().isNotEmpty) {
-                                          tokens = int.parse(value);
-                                        } else {
-                                          tokens = null;
-                                        }
+                          SizedBox(
+                            height: 20,
+                            child: Row(
+                              children: [
+                                Slider(
+                                  value: topP,
+                                  max: 1,
+                                  divisions: 100,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      topP = value;
+                                    });
+                                  },
+                                  label: topP.toString(),
+                                  secondaryTrackValue:
+                                      _assistant.topP!.toDouble(),
+                                ),
+                                if (topP != _assistant.topP!.toDouble())
+                                  GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          topP = _assistant.topP!.toDouble();
+                                        });
                                       },
-                                      onSubmitted: (value) {
-                                        maxPromptTokens = int.parse(value);
-                                        Navigator.pop(context);
+                                      child: const Icon(Icons
+                                          .settings_backup_restore_rounded)),
+                              ],
+                            ),
+                          ),
+                          Text('temperature: $temperature',
+                              style: TextStyle(
+                                  color: Theme.of(context)
+                                      .scaffoldBackgroundColor)),
+                          SizedBox(
+                            height: 20,
+                            child: Row(
+                              children: [
+                                Slider(
+                                  value: temperature,
+                                  max: 2,
+                                  divisions: 200,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      temperature = value;
+                                    });
+                                  },
+                                  label: temperature.toString(),
+                                  secondaryTrackValue:
+                                      _assistant.temperature!.toDouble(),
+                                ),
+                                if (temperature !=
+                                    _assistant.temperature!.toDouble())
+                                  GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          temperature = _assistant.temperature!
+                                              .toDouble();
+                                        });
                                       },
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Cancle')),
-                                      TextButton(
-                                          onPressed: () {
-                                            maxPromptTokens = tokens;
-
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Set'))
-                                    ],
-                                  );
-                                });
-                          },
-                          child: maxPromptTokens == null
-                              ? const Text('Set Max Prompt Tokens')
-                              : Text('Max Prompt Tokens: $maxPromptTokens'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            showDialog(
-                                context: context,
-                                builder: (context) {
-                                  int? tokens;
-                                  return AlertDialog(
-                                    title:
-                                        const Text('Set Max Completion Tokens'),
-                                    content: TextField(
-                                      keyboardType: TextInputType.number,
-                                      autofocus: true,
-                                      onChanged: (value) {
-                                        if (value.toString().isNotEmpty) {
-                                          tokens = int.parse(value);
-                                        } else {
-                                          tokens = null;
-                                        }
-                                      },
-                                      onSubmitted: (value) {
-                                        maxCompletionTokens = int.parse(value);
-                                        Navigator.pop(context);
-                                      },
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Cancle')),
-                                      TextButton(
-                                          onPressed: () {
-                                            maxCompletionTokens = tokens;
-
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Set'))
-                                    ],
-                                  );
-                                });
-                          },
-                          child: maxCompletionTokens == null
-                              ? const Text('Set Max Completion Tokens')
-                              : Text(
-                                  'Max Completion Tokens: $maxCompletionTokens'),
-                        )
-                      ],
+                                      child: const Icon(Icons
+                                          .settings_backup_restore_rounded))
+                              ],
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 8,
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              await tokenSetter(
+                                  context: context,
+                                  title: 'Prompt',
+                                  tokenType: maxPromptTokens,
+                                  tokenSetterOption: (tokens) {
+                                    maxPromptTokens = tokens;
+                                  });
+                            },
+                            child: maxPromptTokens == null
+                                ? const Text('Set Max Prompt Tokens')
+                                : Text('Max Prompt Tokens: $maxPromptTokens'),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              await tokenSetter(
+                                  context: context,
+                                  title: 'Completion',
+                                  tokenType: maxCompletionTokens,
+                                  tokenSetterOption: (tokens) {
+                                    maxCompletionTokens = tokens;
+                                  });
+                            },
+                            child: maxCompletionTokens == null
+                                ? const Text('Set Max Completion Tokens')
+                                : Text(
+                                    'Max Completion Tokens: $maxCompletionTokens'),
+                          )
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            if (chatState.additionalMessages.isNotEmpty)
-              ...List<Widget>.generate(chatState.additionalMessages.length,
-                  (index) {
-                AdditionalMessage additionalMessage =
-                    chatState.additionalMessages[index];
-                String content = additionalMessage.content;
-                String role =
-                    additionalMessage.role == Role.user ? 'user' : 'assistant';
-                return ListTile(
+              if (chatState.additionalMessages.isNotEmpty)
+                ...List<Widget>.generate(chatState.additionalMessages.length,
+                    (index) {
+                  AdditionalMessage additionalMessage =
+                      chatState.additionalMessages[index];
+                  String content = additionalMessage.content;
+                  String role = additionalMessage.role == Role.user
+                      ? 'user'
+                      : 'assistant';
+                  return ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    tileColor: Theme.of(context).colorScheme.onSecondary,
+                    title: Row(
+                      children: [
+                        const Icon(Icons.south_east_rounded),
+                        Text('Additional Messages ($role)'),
+                      ],
+                    ),
+                    subtitle: Text(
+                      content,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: IconButton(
+                        onPressed: () {
+                          chatState.additionalMessages
+                              .remove(additionalMessage);
+                        },
+                        icon: const Icon(Icons.cancel)),
+                  );
+                }),
+              if (chatState.applyAdditionalInstructions)
+                ListTile(
                   dense: true,
-                  visualDensity: VisualDensity.compact,
-                  tileColor: Theme.of(context).colorScheme.onSecondary,
-                  title: Row(
-                    children: [
-                      const Icon(Icons.south_east_rounded),
-                      Text('Additional Messages ($role)'),
-                    ],
-                  ),
+                  onTap: () {
+                    _textController.text =
+                        '@${chatState.additionalInstructions}';
+                  },
                   subtitle: Text(
-                    content,
+                    chatState.additionalInstructions,
                     overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  title: const Row(
+                    children: [
+                      Icon(Icons.data_object_outlined),
+                      Text('Additional Instructions'),
+                    ],
                   ),
                   trailing: IconButton(
                       onPressed: () {
-                        chatState.additionalMessages.remove(additionalMessage);
+                        chatState.applyInstruction(false);
                       },
                       icon: const Icon(Icons.cancel)),
-                );
-              }),
-            if (chatState.applyAdditionalInstructions)
-              ListTile(
-                dense: true,
-                onTap: () {
-                  _textController.text = '@${chatState.additionalInstructions}';
-                },
-                subtitle: Text(
-                  chatState.additionalInstructions,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11),
                 ),
-                title: const Row(
-                  children: [
-                    Icon(Icons.data_object_outlined),
-                    Text('Additional Instructions'),
-                  ],
-                ),
-                trailing: IconButton(
-                    onPressed: () {
-                      chatState.applyInstruction(false);
-                    },
-                    icon: const Icon(Icons.cancel)),
-              ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: <Widget>[
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 100),
-                  curve: Curves.linear,
-                  width: _showAdditionIcons ? 140 : 48,
-                  height: 48,
-                  child: FittedBox(
-                    fit: BoxFit.contain, // 너비에 맞춰 아이콘 크기 조절
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (!_showAdditionIcons)
-                          if (!_showAdditionIcons)
-                            IconButton(
-                              icon: const Icon(Icons.add),
-                              onPressed: () => setState(() {
-                                _showAdditionIcons = true;
-                              }),
-                            ),
-                        if (_showAdditionIcons)
-                          IconButton(
-                              tooltip: '컨트롤러',
-                              icon: const Icon(Icons.tune_rounded),
-                              onPressed: () {
-                                chatState.setShowController(
-                                    !chatState.showController);
-                              }),
-                        if (_showAdditionIcons)
-                          IconButton(
-                              tooltip: '사진추가',
-                              icon:
-                                  const Icon(Icons.add_photo_alternate_rounded),
-                              onPressed: () => setState(() {
-                                    _showAdditionIcons = !_showAdditionIcons;
-                                  })),
-                        if (_showAdditionIcons)
-                          IconButton(
-                              tooltip: '파일추가',
-                              icon: const Icon(Icons.attach_file_rounded),
-                              onPressed: () => setState(() {
-                                    _showAdditionIcons = !_showAdditionIcons;
-                                  })),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                    child: TextField(
-                  onTap: () => setState(() {
-                    _showAdditionIcons = false;
-                  }),
-                  onChanged: (v) {
-                    setState(() {
-                      _showAdditionIcons = false;
-                    });
-                  },
-                  enabled: !chatState.threadDismissed,
-                  maxLines: 10,
-                  minLines: 1,
-                  style: Theme.of(context).textTheme.labelLarge,
-                  controller: _textController,
-                  keyboardType: TextInputType.multiline,
-                  decoration: InputDecoration(
-                    // prefixIcon: const Icon(Icons.star),
-                    hintFadeDuration: const Duration(milliseconds: 300),
-                    hintText: chatState.error
-                        ? chatState.errorMessage
-                        : chatState.threadDismissed
-                            ? 'ThreadDismissed!'
-                            : 'Message',
-                    hintStyle: TextStyle(
-                      color: chatState.error
-                          ? Theme.of(context).colorScheme.errorContainer
-                          : Theme.of(context).textTheme.bodySmall!.color,
-                    ),
-                    filled: !chatState.threadDismissed,
-                    fillColor: chatState.editMessageMode
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : Theme.of(context).colorScheme.onSecondary,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                    border: const OutlineInputBorder(
-                      borderSide: BorderSide.none,
-                      borderRadius: BorderRadius.all(Radius.circular(27)),
-                    ),
-                  ),
-                )),
-                (chatState.tempInstructions.isEmpty)
-                    ? (chatState.userText.isEmpty ||
-                            _textController.text.startsWith('@'))
-                        ? IconButton(
-                            onPressed: chatState.messaging
-                                ? chatState.run != null
-                                    ? () {
-                                        _openai.cancleRun(
-                                            threadId: threadId,
-                                            runId: chatState.run!.id);
-                                      }
-                                    : () {}
-                                : null,
-                            icon: chatState.messaging
-                                ? Icon(
-                                    chatState.run != null
-                                        ? Icons.stop_circle_outlined
-                                        : Icons.circle,
-                                    size: rightIconSize,
-                                  )
-                                    .animate(
-                                      onPlay: (controller) =>
-                                          controller.repeat(),
-                                    )
-                                    .scale(
-                                      duration: 500.ms,
-                                      begin: const Offset(0.9, 0.9),
-                                      end: const Offset(1.1, 1.1),
-                                    )
-                                    .then(duration: 200.ms)
-                                    .scale(
-                                      begin: const Offset(1.1, 1.1),
-                                      end: const Offset(0.9, 0.9),
-                                    )
-                                : Icon(
-                                    Icons.circle,
-                                    size: rightIconSize,
-                                  ),
-                          )
-                        : IconButton(
-                            icon: chatState.error
-                                ? Icon(
-                                    FontAwesomeIcons.circleExclamation,
-                                    size: rightIconSize,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .errorContainer,
-                                  ).animate().fadeIn(duration: 200.ms)
-                                : Icon(Icons.arrow_circle_up_rounded,
-                                        size: rightIconSize)
-                                    .animate()
-                                    .fadeIn(duration: 200.ms),
-                            onPressed: () async {
-                              if (!chatState.messaging) {
-                                final text = _textController.text;
-                                _textController.clear();
-                                _request = createReqMessage(
-                                    [TextContent(value: text)],
-                                    role: Role.user);
-                                if (chatState.editMessageMode) {
-                                  (chatState.userMessage != null
-                                      ? regenMessage(
-                                          oldMessage: chatState.userMessage!,
-                                          index: chatState.editIndex!,
-                                          request: _request,
-                                          editMode: true,
-                                          topP: topP,
-                                          temperature: temperature,
-                                          additionalMessages: chatState
-                                                  .additionalMessages.isNotEmpty
-                                              ? chatState.additionalMessages
-                                              : null,
-                                          additionalInstructions: chatState
-                                                  .additionalInstructions
-                                                  .isNotEmpty
-                                              ? chatState.additionalInstructions
-                                              : null)
-                                      : chatState.setEditMode(value: false));
-                                  setState(() {
-                                    topP = _assistant.topP!.toDouble();
-                                    temperature =
-                                        _assistant.temperature!.toDouble();
-                                  });
-                                } else {
-                                  (await pushMessage(
-                                      request: _request,
-                                      topP: topP,
-                                      temperature: temperature,
-                                      additionalMessages: chatState
-                                              .additionalMessages.isNotEmpty
-                                          ? chatState.additionalMessages
-                                          : null,
-                                      additionalInstructions: chatState
-                                              .additionalInstructions.isNotEmpty
-                                          ? chatState.additionalInstructions
-                                          : null));
-                                }
-                              }
-                            },
-                          )
-                    : IconButton(
-                        onPressed: () {
-                          chatState.applyInstruction(true);
-                          if (chatState.userText != '') {
-                            _textController.text = chatState.userText;
-                          } else {
-                            _textController.clear();
-                          }
+              Row(
+                children: [
+                  if (maxPromptTokens != null)
+                    TextButton(
+                        onPressed: () async {
+                          await tokenSetter(
+                              context: context,
+                              title: 'Prompt',
+                              tokenType: maxPromptTokens,
+                              tokenSetterOption: (tokens) {
+                                maxPromptTokens = tokens;
+                              });
                         },
-                        icon: Icon(
-                          Icons.add_circle_rounded,
-                          size: rightIconSize,
+                        child: Text('MaxPromptTokens: $maxPromptTokens')),
+                  if (maxCompletionTokens != null)
+                    TextButton(
+                        onPressed: () async {
+                          await tokenSetter(
+                              context: context,
+                              title: 'Prompt',
+                              tokenType: maxPromptTokens,
+                              tokenSetterOption: (tokens) {
+                                maxPromptTokens = tokens;
+                              });
+                        },
+                        child:
+                            Text('MaxCompletionTokens: $maxCompletionTokens')),
+                ],
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 100),
+                    curve: Curves.linear,
+                    width: showAdditionIcons ? 140 : 48,
+                    height: 48,
+                    child: FittedBox(
+                      fit: BoxFit.contain, // 너비에 맞춰 아이콘 크기 조절
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!showAdditionIcons)
+                            if (!showAdditionIcons)
+                              IconButton(
+                                icon: const Icon(Icons.add),
+                                onPressed: () => setState(() {
+                                  showAdditionIcons = true;
+                                }),
+                              ),
+                          if (showAdditionIcons)
+                            IconButton(
+                                tooltip: '컨트롤러',
+                                icon: const Icon(Icons.tune_rounded),
+                                onPressed: () {
+                                  chatState.setShowController(
+                                      !chatState.showController);
+                                }),
+                          if (showAdditionIcons)
+                            IconButton(
+                                tooltip: '사진추가',
+                                icon: const Icon(
+                                    Icons.add_photo_alternate_rounded),
+                                onPressed: () => setState(() {
+                                      showAdditionIcons = !showAdditionIcons;
+                                    })),
+                          if (showAdditionIcons)
+                            IconButton(
+                                tooltip: '파일추가',
+                                icon: const Icon(Icons.attach_file_rounded),
+                                onPressed: () => setState(() {
+                                      showAdditionIcons = !showAdditionIcons;
+                                    })),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      onTap: () {
+                        if (showAdditionIcons) {
+                          setState(() {
+                            showAdditionIcons = false;
+                          });
+                        }
+                      },
+                      onChanged: (v) {
+                        setState(() {
+                          if (showAdditionIcons) {
+                            showAdditionIcons = false;
+                          }
+                          lastKnownHeight = checkHeightAndUpdate(context);
+                        });
+                      },
+                      enabled: !chatState.threadDismissed,
+                      maxLines: 10,
+                      minLines: 1,
+                      style: Theme.of(context).textTheme.labelLarge,
+                      controller: _textController,
+                      keyboardType: TextInputType.multiline,
+                      decoration: InputDecoration(
+                        suffixIcon: (lastKnownHeight > 72)
+                            ? IconButton(
+                                iconSize: 34,
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) {
+                                        return DocumentEditorPage(
+                                          controller: _textController,
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.fullscreen_rounded),
+                              )
+                            : null,
+                        hintFadeDuration: const Duration(milliseconds: 300),
+                        hintText: chatState.error
+                            ? chatState.errorMessage
+                            : chatState.threadDismissed
+                                ? 'ThreadDismissed!'
+                                : 'Message',
+                        hintStyle: TextStyle(
+                          color: chatState.error
+                              ? Theme.of(context).colorScheme.errorContainer
+                              : Theme.of(context).textTheme.bodySmall!.color,
+                        ),
+                        filled: !chatState.threadDismissed,
+                        fillColor: chatState.editMessageMode
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).colorScheme.onSecondary,
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 20),
+                        border: const OutlineInputBorder(
+                          borderSide: BorderSide.none,
+                          borderRadius: BorderRadius.all(Radius.circular(27)),
                         ),
                       ),
-              ],
-            ),
-          ],
-        ),
-      );
+                    ),
+                  ),
+                  (chatState.tempInstructions.isEmpty)
+                      ? (chatState.userText.isEmpty ||
+                              _textController.text.startsWith('@'))
+                          ? IconButton(
+                              onPressed: chatState.messaging
+                                  ? chatState.run != null
+                                      ? () {
+                                          _openai.cancleRun(
+                                              threadId: threadId,
+                                              runId: chatState.run!.id);
+                                        }
+                                      : () {}
+                                  : null,
+                              icon: chatState.messaging
+                                  ? Icon(
+                                      chatState.run != null
+                                          ? Icons.stop_circle_outlined
+                                          : Icons.circle,
+                                      size: rightIconSize,
+                                    )
+                                      .animate(
+                                        onPlay: (controller) =>
+                                            controller.repeat(),
+                                      )
+                                      .scale(
+                                        duration: 500.ms,
+                                        begin: const Offset(0.9, 0.9),
+                                        end: const Offset(1.1, 1.1),
+                                      )
+                                      .then(duration: 200.ms)
+                                      .scale(
+                                        begin: const Offset(1.1, 1.1),
+                                        end: const Offset(0.9, 0.9),
+                                      )
+                                  : Icon(
+                                      Icons.circle,
+                                      size: rightIconSize,
+                                    ),
+                            )
+                          : IconButton(
+                              icon: chatState.error
+                                  ? Icon(
+                                      FontAwesomeIcons.circleExclamation,
+                                      size: rightIconSize,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .errorContainer,
+                                    ).animate().fadeIn(duration: 200.ms)
+                                  : Icon(Icons.arrow_circle_up_rounded,
+                                          size: rightIconSize)
+                                      .animate()
+                                      .fadeIn(duration: 200.ms),
+                              onPressed: () async {
+                                if (!chatState.messaging) {
+                                  final text = _textController.text;
+                                  _textController.clear();
+                                  _request = createReqMessage(
+                                      [TextContent(value: text)],
+                                      role: Role.user);
+                                  if (chatState.editMessageMode) {
+                                    (chatState.userMessage != null
+                                        ? regenMessage(
+                                            oldMessage: chatState.userMessage!,
+                                            index: chatState.editIndex!,
+                                            request: _request,
+                                            editMode: true,
+                                            topP: topP,
+                                            temperature: temperature,
+                                            additionalMessages: chatState
+                                                    .additionalMessages
+                                                    .isNotEmpty
+                                                ? chatState.additionalMessages
+                                                : null,
+                                            additionalInstructions: chatState
+                                                    .additionalInstructions
+                                                    .isNotEmpty
+                                                ? chatState
+                                                    .additionalInstructions
+                                                : null)
+                                        : chatState.setEditMode(value: false));
+                                    setState(() {
+                                      topP = _assistant.topP!.toDouble();
+                                      temperature =
+                                          _assistant.temperature!.toDouble();
+                                    });
+                                  } else {
+                                    (await pushMessage(
+                                        request: _request,
+                                        topP: topP,
+                                        temperature: temperature,
+                                        additionalMessages: chatState
+                                                .additionalMessages.isNotEmpty
+                                            ? chatState.additionalMessages
+                                            : null,
+                                        additionalInstructions: chatState
+                                                .additionalInstructions
+                                                .isNotEmpty
+                                            ? chatState.additionalInstructions
+                                            : null));
+                                  }
+                                }
+                              },
+                            )
+                      : IconButton(
+                          onPressed: () {
+                            chatState.applyInstruction(true);
+                            if (chatState.userText != '') {
+                              _textController.text = chatState.userText;
+                            } else {
+                              _textController.clear();
+                            }
+                          },
+                          icon: Icon(
+                            Icons.add_circle_rounded,
+                            size: rightIconSize,
+                          ),
+                        )
+                ],
+              ),
+            ],
+          ),
+        );
+      });
     });
   }
 }
@@ -1477,20 +1545,18 @@ class _ChatBubbleState extends State<ChatBubble> {
           children: runMessage.entries.map((entry) {
             final Run run = entry.key;
             final Message message = entry.value;
+            late String assistantContentText = '';
             Usage? usage = run.usage;
             String model = run.model?.toString() ?? '';
             int? maxPromptTokens = run.maxPromptTokens;
             int? maxCompletionTokens = run.maxCompletionTokens;
-            late String assistantContentText = '';
 
             if (topP == null || temperature == null) {
               topP = run.topP!.toDouble();
               temperature = run.temperature!.toDouble();
             }
 
-            if (userMessage.id == chatState.userMessage?.id &&
-                index == 0 &&
-                !chatState.editMessageMode) {
+            if (_index == 0 && index == 0 && !chatState.editMessageMode) {
               assistantContentText = chatState.streamingText;
             } else {
               if (assistantContentText.isEmpty &&
