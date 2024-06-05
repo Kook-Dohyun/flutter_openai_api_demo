@@ -1556,7 +1556,10 @@ class _ChatBubbleState extends State<ChatBubble> {
               temperature = run.temperature!.toDouble();
             }
 
-            if (_index == 0 && index == 0 && !chatState.editMessageMode) {
+            if (_index == 0 &&
+                index == 0 &&
+                !chatState.editMessageMode &&
+                chatState.streamingText != '') {
               assistantContentText = chatState.streamingText;
             } else {
               if (assistantContentText.isEmpty &&

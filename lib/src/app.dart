@@ -35,7 +35,9 @@ class MyApp extends StatelessWidget {
               colorScheme: settingsController.colorSchemeLitght),
           darkTheme: ThemeData(
               useMaterial3: true,
-              colorScheme: settingsController.colorSchemeDark),
+              colorScheme: settingsController.colorSchemeDark,
+              scaffoldBackgroundColor: Colors.black,
+              appBarTheme: const AppBarTheme(backgroundColor: Colors.black)),
           themeMode: settingsController.themeMode,
           home: (settingsController.isLoggedIn &&
                   settingsController.apiKey != null)

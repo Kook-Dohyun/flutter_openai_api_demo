@@ -30,8 +30,10 @@ class SettingsController with ChangeNotifier {
   Color get seedColor => _seedColor!;
   ColorScheme get colorSchemeLitght =>
       ColorScheme.fromSeed(seedColor: seedColor, brightness: Brightness.light);
-  ColorScheme get colorSchemeDark =>
-      ColorScheme.fromSeed(seedColor: seedColor, brightness: Brightness.dark);
+  ColorScheme get colorSchemeDark => ColorScheme.fromSeed(
+      seedColor: seedColor,
+      brightness: Brightness.dark,
+      );
 
   Map<String, dynamic> get colorMap => _settingsService.colorMap;
   List<String> get apiKeys => _apiKeys;
