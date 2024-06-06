@@ -477,6 +477,7 @@ class _ChatPageState extends State<ChatPage> {
                 type: MaterialType.transparency,
                 child: Text(
                   _assistant.name!,
+                  style: Theme.of(context).textTheme.titleLarge,
                   textWidthBasis: TextWidthBasis.parent,
                   overflow: TextOverflow.ellipsis,
                 ),
