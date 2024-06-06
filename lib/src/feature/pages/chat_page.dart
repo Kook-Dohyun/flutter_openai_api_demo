@@ -471,10 +471,16 @@ class _ChatPageState extends State<ChatPage> {
                 : '',
             onTriggered: () {},
             triggerMode: TooltipTriggerMode.tap,
-            child: Text(
-              _assistant.name!,
-              textWidthBasis: TextWidthBasis.parent,
-              overflow: TextOverflow.ellipsis,
+            child: Hero(
+              tag: _assistant.id,
+              child: Material(
+                type: MaterialType.transparency,
+                child: Text(
+                  _assistant.name!,
+                  textWidthBasis: TextWidthBasis.parent,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
           ),
         ),

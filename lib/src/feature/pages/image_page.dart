@@ -13,7 +13,8 @@ import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
 
 class ImagePage extends StatefulWidget {
-  const ImagePage({super.key});
+  final String title;
+  const ImagePage({super.key, required this.title});
 
   @override
   State<ImagePage> createState() => _ImagePageState();
@@ -31,6 +32,7 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
   String? errorMessage;
   bool _onGen = false;
   bool loading = true;
+  bool _showController = false;
 
   Model selectedModel = Model.dalle3;
   ImageSize selectedSize = ImageSize.large1024x1024;
@@ -49,6 +51,7 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
     openai = settingsController.openAiClient;
     initBox();
     textController = TextEditingController();
+    textController.addListener(_checkForSlash);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -72,6 +75,18 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
         _previousBottomInset = bottomInset;
       }
     });
+  }
+
+  void _checkForSlash() {
+    if (textController.text.startsWith('@')) {
+      setState(() {
+        applyMasterPrompt = true;
+      });
+    } else {
+      setState(() {
+        applyMasterPrompt = false;
+      });
+    }
   }
 
   Future<void> initBox() async {
@@ -130,20 +145,17 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
         errorMessage = null;
         _onGen = true;
       });
-
+      String prompt = (applyMasterPrompt ? masterPrompt : '') +
+          textController.text.substring(1);
       CreateImageRequest request = selectedModel == Model.dalle2
           ? CreateImageRequest.dalle2(
-              prompt: applyMasterPrompt
-                  ? '$masterPrompt + ${textController.text}'
-                  : textController.text,
+              prompt: applyMasterPrompt ? prompt : textController.text,
               n: selectedN,
               size: selectedSize,
               responseFormat: selectedResponseFormat,
             )
           : CreateImageRequest.dalle3(
-              prompt: applyMasterPrompt
-                  ? '$masterPrompt + ${textController.text}'
-                  : textController.text,
+              prompt: applyMasterPrompt ? prompt : textController.text,
               size: selectedSize,
               style: selectedStyle,
               responseFormat: selectedResponseFormat,
@@ -152,8 +164,7 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
       var imageResponseMap =
           await openai.createImage(createImageRequest: request);
       ImageResponse imageResponse = ImageResponse.fromJson(imageResponseMap);
-      String prompt =
-          (applyMasterPrompt ? masterPrompt : '') + textController.text;
+
       SavedImageData savedImageData =
           SavedImageData(prompt: prompt, imageResponse: imageResponse);
 
@@ -240,7 +251,16 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Images'),
+        title: Hero(
+          tag: '/images',
+          child: Material(
+            color: Colors.transparent,
+            child: Text(
+              widget.title,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.favorite),
@@ -339,15 +359,19 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
                                         ),
                                       ],
                                     ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      if (bytes != null) const Text('Base64'),
-                                      if (imageUrl.isNotEmpty)
-                                        const Text('URL'),
-                                      Text(
-                                          ' • ${timeInterpreter(response.created, format: 'yy-MM-dd•HH:mm:ss')} '),
-                                    ],
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2.0),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        if (bytes != null) const Text('Base64'),
+                                        if (imageUrl.isNotEmpty)
+                                          const Text('URL'),
+                                        Text(
+                                            ' • ${timeInterpreter(response.created, format: 'yy-MM-dd•HH:mm:ss')} '),
+                                      ],
+                                    ),
                                   ),
                                   TextButton(
                                       onPressed: () {
@@ -380,57 +404,61 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
                                       },
                                       child:
                                           Text(imageData.revisedPrompt ?? '')),
-                                  Row(children: [
-                                    IconButton(
-                                      iconSize: 30,
-                                      icon: const Icon(Icons.download_rounded),
-                                      onPressed: () async {
-                                        if (imageData.base64 != null) {
-                                          await openai.saveBase64Image(
-                                              imageData.base64!);
-                                        }
-                                        if (imageUrl.isNotEmpty) {
-                                          await openai
-                                              .saveNetworkImage(imageUrl);
-                                        }
-                                        WidgetsBinding.instance
-                                            .addPostFrameCallback((timeStamp) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text('Image saved '),
-                                          ));
-                                        });
-                                      },
-                                    ),
-                                    IconButton(
-                                      iconSize: 30,
-                                      icon: Icon(
-                                        savedData.isLiked
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        color: savedData.isLiked
-                                            ? Colors.red
-                                            : null,
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          savedData.isLiked =
-                                              !savedData.isLiked;
-                                          updateImageStatus(
-                                              index: index,
-                                              savedData:
-                                                  savedData); // 업데이트된 상태를 저장
-                                        });
-                                      },
-                                    ),
-                                    IconButton(
-                                      iconSize: 30,
-                                      icon: const Icon(Icons.delete),
-                                      onPressed: () async {
-                                        await deleteImage(index: index);
-                                      },
-                                    ),
-                                  ]),
+                                  Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        IconButton(
+                                          iconSize: 30,
+                                          icon: const Icon(
+                                              Icons.download_rounded),
+                                          onPressed: () async {
+                                            if (imageData.base64 != null) {
+                                              await openai.saveBase64Image(
+                                                  imageData.base64!);
+                                            }
+                                            if (imageUrl.isNotEmpty) {
+                                              await openai
+                                                  .saveNetworkImage(imageUrl);
+                                            }
+                                            WidgetsBinding.instance
+                                                .addPostFrameCallback(
+                                                    (timeStamp) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(const SnackBar(
+                                                content: Text('Image saved '),
+                                              ));
+                                            });
+                                          },
+                                        ),
+                                        IconButton(
+                                          iconSize: 30,
+                                          icon: Icon(
+                                            savedData.isLiked
+                                                ? Icons.favorite
+                                                : Icons.favorite_border,
+                                            color: savedData.isLiked
+                                                ? Colors.red
+                                                : null,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              savedData.isLiked =
+                                                  !savedData.isLiked;
+                                              updateImageStatus(
+                                                  index: index,
+                                                  savedData:
+                                                      savedData); // 업데이트된 상태를 저장
+                                            });
+                                          },
+                                        ),
+                                        IconButton(
+                                          iconSize: 30,
+                                          icon: const Icon(Icons.delete),
+                                          onPressed: () async {
+                                            await deleteImage(index: index);
+                                          },
+                                        ),
+                                      ]),
                                 ],
                               );
                             }),
@@ -447,204 +475,224 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(
-                    focusNode: _focusNode,
-                    controller: textController,
-                    maxLines: 10,
-                    minLines: 1,
-                    style: Theme.of(context).textTheme.labelLarge,
-                    keyboardType: TextInputType.multiline,
-                    decoration: InputDecoration(
-                      prefixIcon:
-                          applyMasterPrompt ? const Icon(Icons.star) : null,
-                      suffixIcon: IconButton(
-                        onPressed: _onGen ? null : _createImage,
-                        icon: _onGen
-                            ? const Icon(Icons.radio_button_on_rounded)
-                                .animate(
-                                  onPlay: (controller) => controller.repeat(),
-                                )
-                                .scale(
-                                  duration: 500.ms,
-                                  begin: const Offset(0.9, 0.9),
-                                  end: const Offset(1.1, 1.1),
-                                )
-                                .then(duration: 200.ms)
-                                .scale(
-                                    begin: const Offset(1.1, 1.1),
-                                    end: const Offset(0.9, 0.9))
-                            : const Icon(Icons.arrow_circle_up_rounded),
-                        iconSize: 35,
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Row(children: [
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _showController = !_showController;
+                          });
+                        },
+                        icon: _showController
+                            ? const Icon(Icons.close)
+                            : const Icon(Icons.tune_rounded),
                       ),
-                      hintText: 'Prompt',
-                      hintStyle: TextStyle(
-                        color: rateLimitExceeded
-                            ? Theme.of(context).colorScheme.errorContainer
-                            : Theme.of(context).textTheme.bodySmall!.color,
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.onSecondary,
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 20),
-                      border: const OutlineInputBorder(
-                        borderSide: BorderSide.none,
-                        borderRadius: BorderRadius.all(Radius.circular(27)),
-                      ),
-                    ),
+                      Expanded(
+                        child: TextField(
+                          focusNode: _focusNode,
+                          controller: textController,
+                          maxLines: 10,
+                          minLines: 1,
+                          style: Theme.of(context).textTheme.labelLarge,
+                          keyboardType: TextInputType.multiline,
+                          decoration: InputDecoration(
+                            suffixIcon: IconButton(
+                              onPressed: _onGen ? null : _createImage,
+                              icon: _onGen
+                                  ? const Icon(Icons.radio_button_on_rounded)
+                                      .animate(
+                                        onPlay: (controller) =>
+                                            controller.repeat(),
+                                      )
+                                      .scale(
+                                        duration: 500.ms,
+                                        begin: const Offset(0.9, 0.9),
+                                        end: const Offset(1.1, 1.1),
+                                      )
+                                      .then(duration: 200.ms)
+                                      .scale(
+                                          begin: const Offset(1.1, 1.1),
+                                          end: const Offset(0.9, 0.9))
+                                  : textController.text.isEmpty
+                                      ? const Icon(Icons.circle)
+                                      : const Icon(
+                                          Icons.arrow_circle_up_rounded),
+                              iconSize: 35,
+                            ),
+                            hintText: 'Prompt',
+                            hintStyle: TextStyle(
+                              color: rateLimitExceeded
+                                  ? Theme.of(context).colorScheme.errorContainer
+                                  : Theme.of(context)
+                                      .textTheme
+                                      .bodySmall!
+                                      .color,
+                            ),
+                            filled: true,
+                            fillColor: applyMasterPrompt
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                : Theme.of(context).colorScheme.onSecondary,
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 20),
+                            border: const OutlineInputBorder(
+                              borderSide: BorderSide.none,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(27)),
+                            ),
+                          ),
+                        ),
+                      )
+                    ]),
                   ),
-                  Column(
-                    children: [
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          DropdownButton<ImgResponseFormat>(
-                            value: selectedResponseFormat,
-                            onChanged: (ImgResponseFormat? newValue) {
-                              setState(() {
-                                selectedResponseFormat = newValue!;
-                              });
-                            },
-                            items: ImgResponseFormat.values
-                                .map((ImgResponseFormat format) {
-                              return DropdownMenuItem<ImgResponseFormat>(
-                                value: format,
-                                child: Text(format.toString().split('.').last),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(width: 10),
-                          ElevatedButton(
-                            onPressed: () async {
-                              setState(() {
-                                applyMasterPrompt = !applyMasterPrompt;
-                              });
-                            },
-                            child: Text(
-                                '${applyMasterPrompt ? 'Delete ' : 'Add '}Master Prompt'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButton<Model>(
-                              value: selectedModel,
-                              onChanged: (Model? newValue) {
-                                setState(() {
-                                  selectedModel = newValue!;
-                                  selectedN =
-                                      1; // Reset n to default when model changes
-                                });
-                              },
-                              items: Model.values.map((Model model) {
-                                return DropdownMenuItem<Model>(
-                                  value: model,
-                                  child: Text(model.toString().split('.').last),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: DropdownButton<ImageSize>(
-                              value: selectedSize,
-                              onChanged: (ImageSize? newValue) {
-                                setState(() {
-                                  selectedSize = newValue!;
-                                });
-                              },
-                              items: selectedModel == Model.dalle2
-                                  ? ImageSize.values
-                                      .where((size) =>
-                                          size == ImageSize.small256x256 ||
-                                          size == ImageSize.medium512x512 ||
-                                          size == ImageSize.large1024x1024)
-                                      .map((ImageSize size) {
-                                      return DropdownMenuItem<ImageSize>(
-                                        value: size,
-                                        child: Text(_sizeToString(size)),
-                                      );
-                                    }).toList()
-                                  : ImageSize.values
-                                      .where((size) =>
-                                          size == ImageSize.large1024x1024 ||
-                                          size == ImageSize.wide1792x1024 ||
-                                          size == ImageSize.tall1024x1792)
-                                      .map((ImageSize size) {
-                                      return DropdownMenuItem<ImageSize>(
-                                        value: size,
-                                        child: Text(_sizeToString(size)),
-                                      );
-                                    }).toList(),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (selectedModel == Model.dalle2)
-                        Row(
+                  if (_showController)
+                    Theme(
+                      data: Theme.of(context),
+                      child: SizedBox(
+                        height: 150,
+                        child: GridView(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 18,
+                                  mainAxisExtent: 50),
                           children: [
-                            const Text('Number of images:'),
-                            const SizedBox(width: 10),
-                            DropdownButton<int>(
-                              value: selectedN,
-                              onChanged: (int? newValue) {
-                                setState(() {
-                                  selectedN = newValue!;
-                                });
-                              },
-                              items: [1, 2, 3, 4].map((int value) {
-                                return DropdownMenuItem<int>(
-                                  value: value,
-                                  child: Text(value.toString()),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
-                      if (selectedModel == Model.dalle3)
-                        Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButton<Quality>(
-                                value: selectedQuality,
-                                onChanged: (Quality? newValue) {
+                            DropdownButtonHideUnderline(
+                              child: DropdownButton<Model>(
+                                value: selectedModel,
+                                onChanged: (Model? newValue) {
                                   setState(() {
-                                    selectedQuality = newValue!;
+                                    selectedModel = newValue!;
+                                    selectedN =
+                                        1; // Reset n to default when model changes
                                   });
                                 },
-                                items: Quality.values.map((Quality quality) {
-                                  return DropdownMenuItem<Quality>(
-                                    value: quality,
-                                    child: Text(
-                                        quality.toString().split('.').last),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: DropdownButton<Style>(
-                                value: selectedStyle,
-                                onChanged: (Style? newValue) {
-                                  setState(() {
-                                    selectedStyle = newValue!;
-                                  });
-                                },
-                                items: Style.values.map((Style style) {
-                                  return DropdownMenuItem<Style>(
-                                    value: style,
+                                items: Model.values.map((Model model) {
+                                  return DropdownMenuItem<Model>(
+                                    value: model,
                                     child:
-                                        Text(style.toString().split('.').last),
+                                        Text(model.toString().split('.').last),
                                   );
                                 }).toList(),
                               ),
                             ),
+                            DropdownButtonHideUnderline(
+                              child: DropdownButton<ImgResponseFormat>(
+                                value: selectedResponseFormat,
+                                onChanged: (ImgResponseFormat? newValue) {
+                                  setState(() {
+                                    selectedResponseFormat = newValue!;
+                                  });
+                                },
+                                items: ImgResponseFormat.values
+                                    .map((ImgResponseFormat format) {
+                                  return DropdownMenuItem<ImgResponseFormat>(
+                                    value: format,
+                                    child:
+                                        Text(format.toString().split('.').last),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                            DropdownButtonHideUnderline(
+                              child: DropdownButton<ImageSize>(
+                                value: selectedSize,
+                                onChanged: (ImageSize? newValue) {
+                                  setState(() {
+                                    selectedSize = newValue!;
+                                  });
+                                },
+                                items: selectedModel == Model.dalle2
+                                    ? ImageSize.values
+                                        .where((size) =>
+                                            size == ImageSize.small256x256 ||
+                                            size == ImageSize.medium512x512 ||
+                                            size == ImageSize.large1024x1024)
+                                        .map((ImageSize size) {
+                                        return DropdownMenuItem<ImageSize>(
+                                          value: size,
+                                          child: Text(_sizeToString(size)),
+                                        );
+                                      }).toList()
+                                    : ImageSize.values
+                                        .where((size) =>
+                                            size == ImageSize.large1024x1024 ||
+                                            size == ImageSize.wide1792x1024 ||
+                                            size == ImageSize.tall1024x1792)
+                                        .map((ImageSize size) {
+                                        return DropdownMenuItem<ImageSize>(
+                                          value: size,
+                                          child: Text(_sizeToString(size)),
+                                        );
+                                      }).toList(),
+                              ),
+                            ),
+                            if (selectedModel == Model.dalle2)
+                              Row(
+                                mainAxisSize: MainAxisSize.max,
+                                children: [
+                                  const Text('N :'),
+                                  const SizedBox(
+                                    width: 8,
+                                  ),
+                                  DropdownButtonHideUnderline(
+                                    child: DropdownButton<int>(
+                                      value: selectedN,
+                                      onChanged: (int? newValue) {
+                                        setState(() {
+                                          selectedN = newValue!;
+                                        });
+                                      },
+                                      items: [1, 2, 3, 4].map((int value) {
+                                        return DropdownMenuItem<int>(
+                                          value: value,
+                                          child: Text(value.toString()),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            if (selectedModel == Model.dalle3) ...[
+                              DropdownButtonHideUnderline(
+                                child: DropdownButton<Quality>(
+                                  value: selectedQuality,
+                                  onChanged: (Quality? newValue) {
+                                    setState(() {
+                                      selectedQuality = newValue!;
+                                    });
+                                  },
+                                  items: Quality.values.map((Quality quality) {
+                                    return DropdownMenuItem<Quality>(
+                                      value: quality,
+                                      child: Text(
+                                          quality.toString().split('.').last),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                              DropdownButtonHideUnderline(
+                                child: DropdownButton<Style>(
+                                  value: selectedStyle,
+                                  onChanged: (Style? newValue) {
+                                    setState(() {
+                                      selectedStyle = newValue!;
+                                    });
+                                  },
+                                  items: Style.values.map((Style style) {
+                                    return DropdownMenuItem<Style>(
+                                      value: style,
+                                      child: Text(
+                                          style.toString().split('.').last),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ]
                           ],
-                        ),
-                      const SizedBox(height: 10),
-                    ],
-                  ).animate().moveY(begin: 100, curve: Curves.easeIn)
+                        ).animate().fadeIn(curve: Curves.easeIn),
+                      ),
+                    )
                 ],
               ),
             ),
