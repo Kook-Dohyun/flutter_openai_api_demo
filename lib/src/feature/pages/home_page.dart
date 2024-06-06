@@ -29,7 +29,6 @@ class _HomePageState extends State<HomePage>
   late Timer? _timer;
   late List<Assistant> _localAssistants = [];
   late DateTime updateTime;
-  bool _isExpanded = false;
 
   @override
   void initState() {
@@ -180,268 +179,12 @@ class _HomePageState extends State<HomePage>
                     }
                   });
                   if (widgetBinded) {
-                    return Theme(
-                      data: Theme.of(context)
-                          .copyWith(dividerColor: Colors.transparent),
-                      child: ListView(
-                        children: [
-                          ExpansionTile(
-                            visualDensity: const VisualDensity(vertical: 0),
-                            title: const Text('Assistants'),
-                            maintainState: true,
-                            enableFeedback: true,
-                            trailing: _isExpanded
-                                ? IconButton(
-                                    tooltip: '어시스턴트 추가',
-                                    onPressed: () async {
-                                      await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const ModifyOrCreateAssistantPage(
-                                                  action: '추가'),
-                                        ),
-                                      );
-
-                                      _manualRefreshAssistants();
-                                    },
-                                    icon:
-                                        const Icon(Icons.add)) // 펼친 상태일 때의 아이콘
-                                : const Icon(
-                                    Icons.arrow_drop_down), // 펼치지 않은 상태일 때의 아이콘
-                            onExpansionChanged: (bool expanded) {
-                              setState(() {
-                                _isExpanded = expanded; // 펼침 상태 업데이트
-                              });
-                            },
-                            children: [
-                              if (snapshot.data!.isEmpty)
-                                ListTile(
-                                  title:
-                                      const Text('어시스턴트가 없습니다. 어시스턴트를 생성하세요'),
-                                  trailing: const Icon(
-                                      Icons.arrow_forward_ios_rounded),
-                                  onTap: () async {
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const ModifyOrCreateAssistantPage(
-                                                action: '추가'),
-                                      ),
-                                    );
-
-                                    _manualRefreshAssistants();
-                                  },
-                                ),
-                              if (snapshot.data!.isNotEmpty)
-                                ...snapshot.data!
-                                    .asMap()
-                                    .entries
-                                    .map<ListTile>((entry) {
-                                  int index = entry.key + 1;
-                                  Assistant assistant = entry.value;
-                                  return ListTile(
-                                    leading: Text('$index '), // Index 표현
-                                    title: Text(assistant.name ?? '이름 없음'),
-                                    subtitle: Text(
-                                        (assistant.description == null ||
-                                                assistant.description == '')
-                                            ? '설명 없음'
-                                            : assistant.description!),
-                                    onTap: () async {
-                                      await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              ChatPage(assistant: assistant),
-                                        ),
-                                      );
-
-                                      _manualRefreshAssistants();
-                                    },
-                                    onLongPress: () {
-                                      showDialog<void>(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AlertDialog(
-                                            content: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: <Widget>[
-                                                TextButton(
-                                                  child: const Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      Text('디테일 뷰로 이동'),
-                                                      Icon(Icons
-                                                          .arrow_forward_ios_rounded),
-                                                    ],
-                                                  ),
-                                                  onPressed: () async {
-                                                    Navigator.pop(
-                                                        context); // 첫 번째 다이얼로그 닫기
-                                                    await Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            AssistantDetailsPage(
-                                                                assistant:
-                                                                    assistant),
-                                                      ),
-                                                    );
-
-                                                    _manualRefreshAssistants();
-                                                  },
-                                                ),
-                                                const Divider(),
-                                                TextButton(
-                                                  child: const Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      Text('삭제하기'),
-                                                      Icon(Icons.delete),
-                                                    ],
-                                                  ),
-                                                  onPressed: () async {
-                                                    Navigator.pop(
-                                                        context); // 첫 번째 다이얼로그 닫기
-                                                    await showDeleteDialog(
-                                                        context,
-                                                        assistant,
-                                                        false); // 삭제 확인 다이얼로그 띄우기
-
-                                                    _manualRefreshAssistants();
-                                                  },
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  );
-                                }),
-                              ..._localAssistants
-                                  .where((local) => !snapshot.data!
-                                      .map((a) => a.id)
-                                      .contains(local.id))
-                                  .map((assistant) {
-                                TextStyle textStyle =
-                                    const TextStyle(color: Colors.grey);
-                                return ListTile(
-                                  leading: Text(
-                                    '${snapshot.data!.length + 1} ',
-                                    style: textStyle,
-                                  ),
-                                  title: Text(
-                                    assistant.name ?? '이름 없음',
-                                    style: textStyle,
-                                  ),
-                                  subtitle: Text(
-                                    assistant.description ?? '설명 없음',
-                                    style: textStyle,
-                                  ),
-                                  onTap: () {
-                                    showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return Consumer<SettingsController>(
-                                              builder: (context,
-                                                  settingsController, child) {
-                                            final openai =
-                                                settingsController.openAiClient;
-                                            return AlertDialog(
-                                              title: Text(assistant.name ?? ''),
-                                              content: const Text('살리기'),
-                                              actions: [
-                                                TextButton(
-                                                  style: TextButton.styleFrom(
-                                                    textStyle: Theme.of(context)
-                                                        .textTheme
-                                                        .labelLarge,
-                                                  ),
-                                                  child: const Text('취소'),
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-                                                  },
-                                                ),
-                                                TextButton(
-                                                  style: TextButton.styleFrom(
-                                                    textStyle: Theme.of(context)
-                                                        .textTheme
-                                                        .labelLarge,
-                                                  ),
-                                                  child: const Text('확인'),
-                                                  onPressed: () async {
-                                                    bool isSuccess = await openai
-                                                        .createAssistant(
-                                                            name:
-                                                                assistant.name,
-                                                            description:
-                                                                assistant
-                                                                    .description,
-                                                            model:
-                                                                assistant.model,
-                                                            instructions:
-                                                                assistant
-                                                                    .instructions,
-                                                            topP:
-                                                                assistant.topP,
-                                                            temperature:
-                                                                assistant
-                                                                    .temperature,
-                                                            tools: assistant
-                                                                .tools);
-                                                    if (isSuccess) {
-                                                      deleteAssistant(
-                                                          assistant.id);
-                                                      _manualRefreshAssistants();
-                                                    }
-                                                    WidgetsBinding.instance
-                                                        .addPostFrameCallback(
-                                                            (timeStamp) {
-                                                      Navigator.pop(
-                                                          context); // 삭제 다이얼로그 닫기
-                                                    });
-                                                  },
-                                                ),
-                                              ],
-                                            );
-                                          });
-                                        });
-                                  },
-                                  onLongPress: () async {
-                                    await showDeleteDialog(
-                                        context, assistant, true);
-                                    _manualRefreshAssistants();
-                                  },
-                                );
-                              })
-                            ],
-                          ),
-                          const Divider(
-                            endIndent: 20,
-                            indent: 20,
-                          ),
-                          ListTile(
-                            title: const Text('Images'),
-                            trailing:
-                                const Icon(Icons.arrow_forward_ios_rounded),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const ImagePage()),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    );
+                    return HomepageBody(
+                        manualRefreshAssistants: _manualRefreshAssistants,
+                        showDeleteDialog: showDeleteDialog,
+                        deleteAssistant: deleteAssistant,
+                        snapshot: snapshot,
+                        localAssistants: _localAssistants);
                   }
                   return Container();
                 } else if (snapshot.hasError) {
@@ -509,6 +252,259 @@ class _HomePageState extends State<HomePage>
           );
         });
       },
+    );
+  }
+}
+
+class HomepageBody extends StatefulWidget {
+  final Function manualRefreshAssistants;
+  final Function showDeleteDialog;
+  final Function deleteAssistant;
+  final AsyncSnapshot<List<Assistant>> snapshot;
+  final List<Assistant> localAssistants;
+
+  const HomepageBody({
+    super.key,
+    required this.manualRefreshAssistants,
+    required this.showDeleteDialog,
+    required this.deleteAssistant,
+    required this.snapshot,
+    required this.localAssistants,
+  });
+
+  @override
+  State<HomepageBody> createState() => _HomepageBodyState();
+}
+
+class _HomepageBodyState extends State<HomepageBody> {
+  late final _manualRefreshAssistants = widget.manualRefreshAssistants;
+  late final _showDeleteDialog = widget.showDeleteDialog;
+  late final _deleteAssistant = widget.deleteAssistant;
+  late final snapshot = widget.snapshot;
+  late final List<Assistant> _localAssistants = widget.localAssistants;
+  bool _isExpanded = false;
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ListView(
+        children: [
+          ExpansionTile(
+            visualDensity: const VisualDensity(vertical: 0),
+            title: const Text('Assistants'),
+            maintainState: true,
+            enableFeedback: true,
+            trailing: _isExpanded
+                ? IconButton(
+                    tooltip: '어시스턴트 추가',
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const ModifyOrCreateAssistantPage(action: '추가'),
+                        ),
+                      );
+
+                      _manualRefreshAssistants();
+                    },
+                    icon: const Icon(Icons.add)) // 펼친 상태일 때의 아이콘
+                : const Icon(Icons.arrow_drop_down), // 펼치지 않은 상태일 때의 아이콘
+            onExpansionChanged: (bool expanded) {
+              setState(() {
+                _isExpanded = expanded; // 펼침 상태 업데이트
+              });
+            },
+            children: [
+              if (snapshot.data!.isEmpty)
+                ListTile(
+                  title: const Text('어시스턴트가 없습니다. 어시스턴트를 생성하세요'),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded),
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const ModifyOrCreateAssistantPage(action: '추가'),
+                      ),
+                    );
+
+                    _manualRefreshAssistants();
+                  },
+                ),
+              if (snapshot.data!.isNotEmpty)
+                ...snapshot.data!.asMap().entries.map<ListTile>((entry) {
+                  int index = entry.key + 1;
+                  Assistant assistant = entry.value;
+                  return ListTile(
+                    leading: Text('$index '), // Index 표현
+                    title: Text(assistant.name ?? '이름 없음'),
+                    subtitle: Text((assistant.description == null ||
+                            assistant.description == '')
+                        ? '설명 없음'
+                        : assistant.description!),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatPage(assistant: assistant),
+                        ),
+                      );
+
+                      _manualRefreshAssistants();
+                    },
+                    onLongPress: () {
+                      showDialog<void>(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                TextButton(
+                                  child: const Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('디테일 뷰로 이동'),
+                                      Icon(Icons.arrow_forward_ios_rounded),
+                                    ],
+                                  ),
+                                  onPressed: () async {
+                                    Navigator.pop(context); // 첫 번째 다이얼로그 닫기
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            AssistantDetailsPage(
+                                                assistant: assistant),
+                                      ),
+                                    );
+
+                                    _manualRefreshAssistants();
+                                  },
+                                ),
+                                const Divider(),
+                                TextButton(
+                                  child: const Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('삭제하기'),
+                                      Icon(Icons.delete),
+                                    ],
+                                  ),
+                                  onPressed: () async {
+                                    Navigator.pop(context); // 첫 번째 다이얼로그 닫기
+                                    await _showDeleteDialog(context, assistant,
+                                        false); // 삭제 확인 다이얼로그 띄우기
+
+                                    _manualRefreshAssistants();
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                }),
+              ..._localAssistants
+                  .where((local) =>
+                      !snapshot.data!.map((a) => a.id).contains(local.id))
+                  .map((assistant) {
+                TextStyle textStyle = const TextStyle(color: Colors.grey);
+                return ListTile(
+                  leading: Text(
+                    '${snapshot.data!.length + 1} ',
+                    style: textStyle,
+                  ),
+                  title: Text(
+                    assistant.name ?? '이름 없음',
+                    style: textStyle,
+                  ),
+                  subtitle: Text(
+                    assistant.description ?? '설명 없음',
+                    style: textStyle,
+                  ),
+                  onTap: () {
+                    showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return Consumer<SettingsController>(
+                              builder: (context, settingsController, child) {
+                            final openai = settingsController.openAiClient;
+                            return AlertDialog(
+                              title: Text(assistant.name ?? ''),
+                              content: const Text('살리기'),
+                              actions: [
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    textStyle:
+                                        Theme.of(context).textTheme.labelLarge,
+                                  ),
+                                  child: const Text('취소'),
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    textStyle:
+                                        Theme.of(context).textTheme.labelLarge,
+                                  ),
+                                  child: const Text('확인'),
+                                  onPressed: () async {
+                                    bool isSuccess =
+                                        await openai.createAssistant(
+                                            name: assistant.name,
+                                            description: assistant.description,
+                                            model: assistant.model,
+                                            instructions:
+                                                assistant.instructions,
+                                            topP: assistant.topP,
+                                            temperature: assistant.temperature,
+                                            tools: assistant.tools);
+                                    if (isSuccess) {
+                                      _deleteAssistant(assistant.id);
+                                      _manualRefreshAssistants();
+                                    }
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((timeStamp) {
+                                      Navigator.pop(context); // 삭제 다이얼로그 닫기
+                                    });
+                                  },
+                                ),
+                              ],
+                            );
+                          });
+                        });
+                  },
+                  onLongPress: () async {
+                    await _showDeleteDialog(context, assistant, true);
+                    _manualRefreshAssistants();
+                  },
+                );
+              })
+            ],
+          ),
+          const Divider(
+            endIndent: 20,
+            indent: 20,
+          ),
+          ListTile(
+            title: const Text('Images'),
+            trailing: const Icon(Icons.arrow_forward_ios_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ImagePage()),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
