@@ -16,34 +16,13 @@ class SettingsService {
     await Hive.initFlutter();
     _settingsBox = await Hive.openBox(_boxName);
   }
-
-  /// API 키 리스트에서 모든 키를 불러옵니다.
+ 
   List<String> getApiKeys() {
     return List<String>.from(_settingsBox?.get(_apiKeys, defaultValue: []));
   }
 
-  /// 새 API 키를 리스트에 추가합니다.
-  Future<void> addApiKey(String apiKey) async {
-    List<String> apiKeys = getApiKeys();
-    if (apiKeys.contains(apiKey)) {
-    } else {
-      apiKeys.add(apiKey);
-    }
+   Future<void> setApiKeys(List<String>? apiKeys) async{
     await _settingsBox?.put(_apiKeys, apiKeys);
-
-    await setCurrentApiKey(apiKey);
-  }
-
-  /// API 키를 삭제하고 첫 번째 키를 현재 API 키로 설정합니다.
-  Future<void> removeApiKey(String apiKey) async {
-    var apiKeys = getApiKeys();
-    apiKeys.remove(apiKey);
-    await _settingsBox?.put(_apiKeys, apiKeys);
-    if (apiKeys.isNotEmpty) {
-      await setCurrentApiKey(apiKeys.first); // 리스트의 첫 번째 키를 현재 키로 설정
-    } else {
-      await _settingsBox?.delete(_currentApiKey); // 모든 키가 삭제되면 현재 키도 삭제
-    }
   }
 
   Future<String?> getCurrentApiKey() async {
@@ -54,6 +33,29 @@ class SettingsService {
     await _settingsBox?.put(_currentApiKey, apiKey);
   }
 
+   Future<void> addApiKey(String apiKey) async {
+    List<String> apiKeys = getApiKeys();
+    if (apiKeys.contains(apiKey)) {
+    } else {
+      apiKeys.add(apiKey);
+    }
+    await _settingsBox?.put(_apiKeys, apiKeys);
+
+    await setCurrentApiKey(apiKey);
+  }
+
+    Future<void> removeApiKey(String apiKey) async {
+    var apiKeys = getApiKeys();
+    apiKeys.remove(apiKey);
+    await _settingsBox?.put(_apiKeys, apiKeys);
+    if (apiKeys.isNotEmpty) {
+      await setCurrentApiKey(apiKeys.first);  
+    } else {
+      await _settingsBox?.delete(_currentApiKey); 
+    }
+  }
+
+  /////////////////////////////////////////////////////////////
   Future<String?> getBaseUrl() async {
     return _settingsBox?.get(_baseUrl, defaultValue: 'https://api.openai.com');
   }

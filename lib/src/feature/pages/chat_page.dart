@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:openai/src/feature/seperate_pages/assistant_detail_page.dart';
+import 'package:openai/src/feature/child_pages/assistant_detail_page.dart';
 import 'package:openai/src/services/openai_client.dart';
 import 'package:openai/src/services/assistant_response_classes.dart';
 import 'package:openai/src/settings/chat_state_provider.dart';
@@ -15,7 +15,7 @@ import 'package:openai/src/settings/settings_controller.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui' as ui;
 
-import '../seperate_pages/document_editor_page.dart';
+import '../child_pages/document_editor_page.dart';
 
 class ChatPage extends StatefulWidget {
   final String? threadID;

@@ -7,8 +7,8 @@ import 'package:openai/src/settings/settings_controller.dart';
 import 'package:provider/provider.dart';
 
 import '../widgets/setting_drawer_widget.dart';
-import '../seperate_pages/assistant_modify_page.dart';
-import '../seperate_pages/assistant_detail_page.dart';
+import '../child_pages/assistant_modify_page.dart';
+import '../child_pages/assistant_detail_page.dart';
 import 'image_page.dart';
 import 'chat_page.dart';
 

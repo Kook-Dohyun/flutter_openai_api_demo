@@ -31,8 +31,8 @@ class SettingsController with ChangeNotifier {
   ColorScheme get colorSchemeLitght =>
       ColorScheme.fromSeed(seedColor: seedColor, brightness: Brightness.light);
   ColorScheme get colorSchemeDark => ColorScheme.fromSeed(
-      seedColor: seedColor,
-      brightness: Brightness.dark,
+        seedColor: seedColor,
+        brightness: Brightness.dark,
       );
 
   Map<String, dynamic> get colorMap => _settingsService.colorMap;
@@ -65,15 +65,21 @@ class SettingsController with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<UserCredential> googleSignIn() async {
-    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-    final GoogleSignInAuthentication? googleAuth =
-        await googleUser?.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth?.accessToken,
-      idToken: googleAuth?.idToken,
-    );
-    return await FirebaseAuth.instance.signInWithCredential(credential);
+  Future<bool> googleSignIn() async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignInAuthentication? googleAuth =
+          await googleUser?.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth?.accessToken,
+        idToken: googleAuth?.idToken,
+      );
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      bool existUser = await getDocumentIds();
+      return existUser;
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> googleSignOut() async {
@@ -85,6 +91,27 @@ class SettingsController with ChangeNotifier {
   ////////////////////////////////////////////////////////////////
   Future<void> firebasedeleteDoc(apiKey) async {
     await _firestore.collection(_currentUser!.uid).doc(apiKey).delete();
+  }
+
+  Future<bool> getDocumentIds() async {
+    try {
+      final User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        return false;
+      }
+
+      final QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance.collection(currentUser.uid).get();
+
+      List<String> docIds = querySnapshot.docs.map((doc) => doc.id).toList();
+      if (docIds.isNotEmpty) {
+        await _settingsService.setApiKeys(docIds);
+        await updateApiKey(docIds.first);
+      }
+      return true;
+    } catch (e) {
+      rethrow;
+    }
   }
 
   /// Theme

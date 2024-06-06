@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:openai/src/feature/pages/login_page.dart';
+import 'package:openai/src/feature/pages/api_add_page.dart'; 
 import 'package:provider/provider.dart';
 import 'feature/pages/home_page.dart';
+import 'feature/pages/login_page.dart';
 import 'settings/settings_controller.dart';
 
 /// The Widget that configures your application.
@@ -39,10 +40,10 @@ class MyApp extends StatelessWidget {
               scaffoldBackgroundColor: Colors.black,
               appBarTheme: const AppBarTheme(backgroundColor: Colors.black)),
           themeMode: settingsController.themeMode,
-          home: (settingsController.isLoggedIn &&
-                  settingsController.apiKey != null)
-              ? const HomePage()
-              : const SampleLogInPage(),
+          home: (settingsController.isLoggedIn)
+                  ?(settingsController.apiKey != null)
+              ? const HomePage():const APIinsertPage()
+              : const LogInPage(),
           debugShowCheckedModeBanner: false,
         );
       },
