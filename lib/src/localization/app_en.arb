@@ -1,6 +1,67 @@
 {
+  "@@locale": "en",
   "appTitle": "openai",
+  "undo": "Undo",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "delete": "Delete",
+  "add": "Add",
+  "update": "Update",
+  "refresh": "Refresh",
+  "noData":"No Data.",
+  "errorAccured":"Error Accured",
+  "homepage_assistantDelete": "Delete Assistant",
+  "homepage_assistantDelete_checkout": "Delete from OpenAI server.",
+  "homepage_assistantDelete_permenant": "Permanently Delete Assistant",
+  "homepage_assistantDelete_permenant_checkout": "This action cannot be undone.\nDo you really want to permanently delete?",
+  "homepage_noName": "No Name",
+  "homepage_noDescription": "No Description",
+  "homepage_goToDetailView": "Go to Detail View",
+  "homepage_noAssistant": "No assistant available. Please create an assistant.",
+  "homepage_addAssistant": "Add Assistant",
   "@appTitle": {
     "description": "The title of the application"
+  },
+  "@undo": {
+    "description": "A button text for undoing the last action."
+  },
+  "@cancel": {
+    "description": "A button text for canceling the current action."
+  },
+  "@confirm": {
+    "description": "A button text for confirming the action."
+  },
+  "@delete": {
+    "description": "A button text for deleting an item."
+  },
+  "@add": {
+    "description": "A button text for adding a new item."
+  },
+  "@homepage_assistantDelete": {
+    "description": "Button text for deleting an assistant on the homepage."
+  },
+  "@homepage_assistantDelete_checkout": {
+    "description": "Text indicating that the assistant will be deleted from the OpenAI server."
+  },
+  "@homepage_assistantDelete_permenant": {
+    "description": "Button text for permanently deleting an assistant on the homepage."
+  },
+  "@homepage_assistantDelete_permenant_checkout": {
+    "description": "A warning message on the homepage indicating that the action cannot be undone and asking for confirmation for permanent deletion."
+  },
+  "@homepage_noName": {
+    "description": "A placeholder text on the homepage indicating that no name is provided."
+  },
+  "@homepage_noDescription": {
+    "description": "A placeholder text on the homepage indicating that no description is provided."
+  },
+  "@homepage_goToDetailView": {
+    "description": "A button text on the homepage for navigating to the detail view."
+  },
+  "@homepage_noAssistant": {
+    "description": "A message on the homepage indicating that there is no assistant and prompting the user to create one."
+  },
+  "@homepage_addAssistant": {
+    "description": "A button text on the homepage for adding a new assistant."
   }
 }

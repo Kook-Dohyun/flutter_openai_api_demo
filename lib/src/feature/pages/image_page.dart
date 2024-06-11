@@ -1,4 +1,3 @@
-//             'https://c3.klipartz.com/pngpicture/98/988/sticker-png-jennie-blackpink.png'
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -124,10 +123,12 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
         }
       }
     }
-    setState(() {
-      cachedImageData;
-      loading = false;
-    });
+    if (mounted) {
+      setState(() {
+        cachedImageData;
+        loading = false;
+      });
+    }
   }
 
   Future<void> updateImageStatus(
@@ -251,15 +252,9 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Hero(
-          tag: '/images',
-          child: Material(
-            color: Colors.transparent,
-            child: Text(
-              widget.title,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
+        title: Text(
+          widget.title,
+          style: Theme.of(context).textTheme.titleLarge,
         ),
         actions: [
           IconButton(
@@ -546,152 +541,148 @@ class _ImagePageState extends State<ImagePage> with WidgetsBindingObserver {
                     ]),
                   ),
                   if (_showController)
-                    Theme(
-                      data: Theme.of(context),
-                      child: SizedBox(
-                        height: 150,
-                        child: GridView(
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  crossAxisSpacing: 18,
-                                  mainAxisExtent: 50),
-                          children: [
+                    SizedBox(
+                      height: 150,
+                      child: GridView(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 18,
+                                mainAxisExtent: 50),
+                        children: [
+                          DropdownButtonHideUnderline(
+                            child: DropdownButton<Model>(
+                              value: selectedModel,
+                              onChanged: (Model? newValue) {
+                                setState(() {
+                                  selectedModel = newValue!;
+                                  selectedN =
+                                      1; // Reset n to default when model changes
+                                });
+                              },
+                              items: Model.values.map((Model model) {
+                                return DropdownMenuItem<Model>(
+                                  value: model,
+                                  child: Text(model.toString().split('.').last),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          DropdownButtonHideUnderline(
+                            child: DropdownButton<ImgResponseFormat>(
+                              value: selectedResponseFormat,
+                              onChanged: (ImgResponseFormat? newValue) {
+                                setState(() {
+                                  selectedResponseFormat = newValue!;
+                                });
+                              },
+                              items: ImgResponseFormat.values
+                                  .map((ImgResponseFormat format) {
+                                return DropdownMenuItem<ImgResponseFormat>(
+                                  value: format,
+                                  child:
+                                      Text(format.toString().split('.').last),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          DropdownButtonHideUnderline(
+                            child: DropdownButton<ImageSize>(
+                              value: selectedSize,
+                              onChanged: (ImageSize? newValue) {
+                                setState(() {
+                                  selectedSize = newValue!;
+                                });
+                              },
+                              items: selectedModel == Model.dalle2
+                                  ? ImageSize.values
+                                      .where((size) =>
+                                          size == ImageSize.small256x256 ||
+                                          size == ImageSize.medium512x512 ||
+                                          size == ImageSize.large1024x1024)
+                                      .map((ImageSize size) {
+                                      return DropdownMenuItem<ImageSize>(
+                                        value: size,
+                                        child: Text(_sizeToString(size)),
+                                      );
+                                    }).toList()
+                                  : ImageSize.values
+                                      .where((size) =>
+                                          size == ImageSize.large1024x1024 ||
+                                          size == ImageSize.wide1792x1024 ||
+                                          size == ImageSize.tall1024x1792)
+                                      .map((ImageSize size) {
+                                      return DropdownMenuItem<ImageSize>(
+                                        value: size,
+                                        child: Text(_sizeToString(size)),
+                                      );
+                                    }).toList(),
+                            ),
+                          ),
+                          if (selectedModel == Model.dalle2)
+                            Row(
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                const Text('N :'),
+                                const SizedBox(
+                                  width: 8,
+                                ),
+                                DropdownButtonHideUnderline(
+                                  child: DropdownButton<int>(
+                                    value: selectedN,
+                                    onChanged: (int? newValue) {
+                                      setState(() {
+                                        selectedN = newValue!;
+                                      });
+                                    },
+                                    items: [1, 2, 3, 4].map((int value) {
+                                      return DropdownMenuItem<int>(
+                                        value: value,
+                                        child: Text(value.toString()),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          if (selectedModel == Model.dalle3) ...[
                             DropdownButtonHideUnderline(
-                              child: DropdownButton<Model>(
-                                value: selectedModel,
-                                onChanged: (Model? newValue) {
+                              child: DropdownButton<Quality>(
+                                value: selectedQuality,
+                                onChanged: (Quality? newValue) {
                                   setState(() {
-                                    selectedModel = newValue!;
-                                    selectedN =
-                                        1; // Reset n to default when model changes
+                                    selectedQuality = newValue!;
                                   });
                                 },
-                                items: Model.values.map((Model model) {
-                                  return DropdownMenuItem<Model>(
-                                    value: model,
-                                    child:
-                                        Text(model.toString().split('.').last),
+                                items: Quality.values.map((Quality quality) {
+                                  return DropdownMenuItem<Quality>(
+                                    value: quality,
+                                    child: Text(
+                                        quality.toString().split('.').last),
                                   );
                                 }).toList(),
                               ),
                             ),
                             DropdownButtonHideUnderline(
-                              child: DropdownButton<ImgResponseFormat>(
-                                value: selectedResponseFormat,
-                                onChanged: (ImgResponseFormat? newValue) {
+                              child: DropdownButton<Style>(
+                                value: selectedStyle,
+                                onChanged: (Style? newValue) {
                                   setState(() {
-                                    selectedResponseFormat = newValue!;
+                                    selectedStyle = newValue!;
                                   });
                                 },
-                                items: ImgResponseFormat.values
-                                    .map((ImgResponseFormat format) {
-                                  return DropdownMenuItem<ImgResponseFormat>(
-                                    value: format,
+                                items: Style.values.map((Style style) {
+                                  return DropdownMenuItem<Style>(
+                                    value: style,
                                     child:
-                                        Text(format.toString().split('.').last),
+                                        Text(style.toString().split('.').last),
                                   );
                                 }).toList(),
                               ),
                             ),
-                            DropdownButtonHideUnderline(
-                              child: DropdownButton<ImageSize>(
-                                value: selectedSize,
-                                onChanged: (ImageSize? newValue) {
-                                  setState(() {
-                                    selectedSize = newValue!;
-                                  });
-                                },
-                                items: selectedModel == Model.dalle2
-                                    ? ImageSize.values
-                                        .where((size) =>
-                                            size == ImageSize.small256x256 ||
-                                            size == ImageSize.medium512x512 ||
-                                            size == ImageSize.large1024x1024)
-                                        .map((ImageSize size) {
-                                        return DropdownMenuItem<ImageSize>(
-                                          value: size,
-                                          child: Text(_sizeToString(size)),
-                                        );
-                                      }).toList()
-                                    : ImageSize.values
-                                        .where((size) =>
-                                            size == ImageSize.large1024x1024 ||
-                                            size == ImageSize.wide1792x1024 ||
-                                            size == ImageSize.tall1024x1792)
-                                        .map((ImageSize size) {
-                                        return DropdownMenuItem<ImageSize>(
-                                          value: size,
-                                          child: Text(_sizeToString(size)),
-                                        );
-                                      }).toList(),
-                              ),
-                            ),
-                            if (selectedModel == Model.dalle2)
-                              Row(
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  const Text('N :'),
-                                  const SizedBox(
-                                    width: 8,
-                                  ),
-                                  DropdownButtonHideUnderline(
-                                    child: DropdownButton<int>(
-                                      value: selectedN,
-                                      onChanged: (int? newValue) {
-                                        setState(() {
-                                          selectedN = newValue!;
-                                        });
-                                      },
-                                      items: [1, 2, 3, 4].map((int value) {
-                                        return DropdownMenuItem<int>(
-                                          value: value,
-                                          child: Text(value.toString()),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            if (selectedModel == Model.dalle3) ...[
-                              DropdownButtonHideUnderline(
-                                child: DropdownButton<Quality>(
-                                  value: selectedQuality,
-                                  onChanged: (Quality? newValue) {
-                                    setState(() {
-                                      selectedQuality = newValue!;
-                                    });
-                                  },
-                                  items: Quality.values.map((Quality quality) {
-                                    return DropdownMenuItem<Quality>(
-                                      value: quality,
-                                      child: Text(
-                                          quality.toString().split('.').last),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                              DropdownButtonHideUnderline(
-                                child: DropdownButton<Style>(
-                                  value: selectedStyle,
-                                  onChanged: (Style? newValue) {
-                                    setState(() {
-                                      selectedStyle = newValue!;
-                                    });
-                                  },
-                                  items: Style.values.map((Style style) {
-                                    return DropdownMenuItem<Style>(
-                                      value: style,
-                                      child: Text(
-                                          style.toString().split('.').last),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                            ]
-                          ],
-                        ).animate().fadeIn(curve: Curves.easeIn),
-                      ),
+                          ]
+                        ],
+                      ).animate().fadeIn(curve: Curves.easeIn),
                     )
                 ],
               ),

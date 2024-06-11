@@ -5,7 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:openai/src/services/assistant_response_classes.dart';
 import 'package:openai/src/settings/settings_controller.dart';
 import 'package:provider/provider.dart';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../widgets/setting_drawer_widget.dart';
 import '../child_pages/assistant_modify_page.dart';
 import '../child_pages/assistant_detail_page.dart';
@@ -25,9 +25,9 @@ class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late StreamController<List<Assistant>> _streamController;
+  late List<Assistant> _localAssistants = [];
   late AnimationController _refreshIconAnimeController;
   late Timer? _timer;
-  late List<Assistant> _localAssistants = [];
   late DateTime updateTime;
 
   @override
@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage>
   }
 
   Future<void> _startLoadingAssistants() async {
-    await _loadFirestoreAssistants();
+    await _loadAssistantsFromFirestore();
     await _loadAssistants();
     _timer = Timer.periodic(const Duration(minutes: 10), (timer) async {
       await _loadAssistants();
@@ -79,16 +79,7 @@ class _HomePageState extends State<HomePage>
     });
   }
 
-  void _manualRefreshAssistants() async {
-    _refreshIconAnimeController.repeat();
-    _timer?.cancel();
-    await _startLoadingAssistants();
-    if (mounted) {
-      _refreshIconAnimeController.stop();
-    }
-  }
-
-  Future<void> _loadFirestoreAssistants() async {
+  Future<void> _loadAssistantsFromFirestore() async {
     final firestore = FirebaseFirestore.instance;
     final settingsController = context.read<SettingsController>();
     final user = settingsController.currentUser!;
@@ -105,8 +96,18 @@ class _HomePageState extends State<HomePage>
     for (var doc in querySnapshot.docs) {
       firestoreAssistants.add(Assistant.fromJson(doc.data()));
     }
+    setState(() {
+      _localAssistants = firestoreAssistants;
+    });
+  }
 
-    _localAssistants = firestoreAssistants;
+  void _manualRefreshAssistants() async {
+    _refreshIconAnimeController.repeat();
+    _timer?.cancel();
+    await _startLoadingAssistants();
+    if (mounted) {
+      _refreshIconAnimeController.stop();
+    }
   }
 
   Future<void> deleteAssistant(String assistantId) async {
@@ -124,7 +125,7 @@ class _HomePageState extends State<HomePage>
     } catch (e) {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('deleted assistant'),
+          content: Text('error'),
         ));
       });
     }
@@ -139,7 +140,7 @@ class _HomePageState extends State<HomePage>
         title: const Text('OpenAI API'),
         actions: [
           IconButton(
-              tooltip: '새로고침',
+              tooltip: AppLocalizations.of(context)!.refresh,
               onPressed: _manualRefreshAssistants,
               icon: const Icon(Icons.refresh_rounded)
                   .animate(
@@ -149,7 +150,7 @@ class _HomePageState extends State<HomePage>
           IconButton(
             tooltip: '설정',
             icon: const Icon(Icons.settings),
-            onPressed: () {
+            onPressed: () async {
               _scaffoldKey.currentState?.openEndDrawer();
             },
           ),
@@ -188,14 +189,15 @@ class _HomePageState extends State<HomePage>
                   }
                   return Container();
                 } else if (snapshot.hasError) {
-                  return Text('오류가 발생했습니다: ${snapshot.error}');
+                  return Text(
+                      '${AppLocalizations.of(context)!.errorAccured}: ${snapshot.error}');
                 }
-                return const Text("데이터가 없습니다.");
+                return Text(AppLocalizations.of(context)!.noData);
               },
             ),
           ),
           Text(
-            '업데이트: ${updateTime.toString()}',
+            '${AppLocalizations.of(context)!.update}: ${updateTime.toString()}',
             style: TextStyle(
                 color: Theme.of(context).textTheme.labelSmall!.color,
                 fontSize: 11),
@@ -221,25 +223,31 @@ class _HomePageState extends State<HomePage>
             builder: (context, settingsController, child) {
           final openai = settingsController.openAiClient;
           return AlertDialog(
-            title: Text(deletePermanent ? '어시스턴트 영구삭제' : '어시스턴트 삭제'),
+            title: Text(deletePermanent
+                ? AppLocalizations.of(context)!
+                    .homepage_assistantDelete_permenant
+                : AppLocalizations.of(context)!.homepage_assistantDelete),
             content: Text(deletePermanent
-                ? '작업을 되돌릴 수 없습니다.\n정말 영구삭제 하시겠습니까?'
-                : 'OpenAI 서버에서 삭제합니다.'),
+                ? AppLocalizations.of(context)!
+                    .homepage_assistantDelete_permenant_checkout
+                : AppLocalizations.of(context)!
+                    .homepage_assistantDelete_checkout),
             actions: <Widget>[
               TextButton(
                 style: TextButton.styleFrom(
                   textStyle: Theme.of(context).textTheme.labelLarge,
                 ),
-                child: const Text('취소'),
-                onPressed: () {
+                child: Text(AppLocalizations.of(context)!.cancel),
+                onPressed: () async {
                   Navigator.pop(context);
+                  _manualRefreshAssistants();
                 },
               ),
               TextButton(
                 style: TextButton.styleFrom(
                   textStyle: Theme.of(context).textTheme.labelLarge,
                 ),
-                child: const Text('확인'),
+                child: Text(AppLocalizations.of(context)!.confirm),
                 onPressed: () {
                   deletePermanent
                       ? deleteAssistant(assistant.id)
@@ -294,29 +302,22 @@ class _HomepageBodyState extends State<HomepageBody> {
 
       return Column(
         children: [
-          Hero(
-            tag: '/images',
-            child: Material(
-              type: MaterialType.transparency,
-              child: Card(
-                color: Theme.of(context).colorScheme.onPrimary,
-                clipBehavior: Clip.hardEdge,
-                margin: const EdgeInsets.all(10),
-                elevation: 8,
-                child: ListTile(
-                  leading: const Icon(Icons.brush),
-                  title: Text(_imagePageTitle),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              ImagePage(title: _imagePageTitle)),
-                    );
-                  },
-                ),
-              ),
+          Card(
+            color: Theme.of(context).colorScheme.onPrimary,
+            clipBehavior: Clip.hardEdge,
+            margin: const EdgeInsets.all(10),
+            elevation: 8,
+            child: ListTile(
+              leading: const Icon(Icons.brush),
+              title: Text(_imagePageTitle),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => ImagePage(title: _imagePageTitle)),
+                );
+              },
             ),
           ),
           Theme(
@@ -329,13 +330,14 @@ class _HomepageBodyState extends State<HomepageBody> {
               initiallyExpanded: true,
               trailing: _isExpanded
                   ? IconButton(
-                      tooltip: '어시스턴트 추가',
+                      tooltip:
+                          AppLocalizations.of(context)!.homepage_addAssistant,
                       onPressed: () async {
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                const ModifyOrCreateAssistantPage(action: '추가'),
+                            builder: (context) => ModifyOrCreateAssistantPage(
+                                action: AppLocalizations.of(context)!.add),
                           ),
                         );
 
@@ -353,14 +355,15 @@ class _HomepageBodyState extends State<HomepageBody> {
               children: [
                 if (_dbAssistants.isEmpty)
                   ListTile(
-                    title: const Text('어시스턴트가 없습니다. 어시스턴트를 생성하세요'),
+                    title: Text(
+                        AppLocalizations.of(context)!.homepage_noAssistant),
                     trailing: const Icon(Icons.arrow_forward_ios_rounded),
                     onTap: () async {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const ModifyOrCreateAssistantPage(action: '추가'),
+                          builder: (context) => ModifyOrCreateAssistantPage(
+                              action: AppLocalizations.of(context)!.add),
                         ),
                       );
 
@@ -387,10 +390,13 @@ class _HomepageBodyState extends State<HomepageBody> {
                                   tag: assistant.id,
                                   child: Material(
                                       type: MaterialType.transparency,
-                                      child: Text(assistant.name ?? '이름 없음'))),
+                                      child: Text(assistant.name ??
+                                          AppLocalizations.of(context)!
+                                              .homepage_noName))),
                               subtitle: Text((assistant.description == null ||
                                       assistant.description == '')
-                                  ? '설명 없음'
+                                  ? AppLocalizations.of(context)!
+                                      .homepage_noDescription
                                   : assistant.description!),
                               onTap: () async {
                                 await Navigator.push(
@@ -412,13 +418,15 @@ class _HomepageBodyState extends State<HomepageBody> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: <Widget>[
                                           TextButton(
-                                            child: const Row(
+                                            child: Row(
                                               mainAxisAlignment:
                                                   MainAxisAlignment
                                                       .spaceBetween,
                                               children: [
-                                                Text('디테일 뷰로 이동'),
-                                                Icon(Icons
+                                                Text(AppLocalizations.of(
+                                                        context)!
+                                                    .homepage_goToDetailView),
+                                                const Icon(Icons
                                                     .arrow_forward_ios_rounded),
                                               ],
                                             ),
@@ -439,24 +447,21 @@ class _HomepageBodyState extends State<HomepageBody> {
                                           ),
                                           const Divider(),
                                           TextButton(
-                                            child: const Row(
+                                            child: Row(
                                               mainAxisAlignment:
                                                   MainAxisAlignment
                                                       .spaceBetween,
                                               children: [
-                                                Text('삭제하기'),
-                                                Icon(Icons.delete),
+                                                Text(AppLocalizations.of(
+                                                        context)!
+                                                    .delete),
+                                                const Icon(Icons.delete),
                                               ],
                                             ),
                                             onPressed: () async {
-                                              Navigator.pop(
-                                                  context); // 첫 번째 다이얼로그 닫기
+                                              Navigator.pop(context);
                                               await _showDeleteDialog(
-                                                  context,
-                                                  assistant,
-                                                  false); // 삭제 확인 다이얼로그 띄우기
-
-                                              _manualRefreshAssistants();
+                                                  context, assistant, false);
                                             },
                                           ),
                                         ],
@@ -491,11 +496,14 @@ class _HomepageBodyState extends State<HomepageBody> {
                               style: textStyle,
                             ),
                             title: Text(
-                              assistant.name ?? '이름 없음',
+                              assistant.name ??
+                                  AppLocalizations.of(context)!.homepage_noName,
                               style: textStyle,
                             ),
                             subtitle: Text(
-                              assistant.description ?? '설명 없음',
+                              assistant.description ??
+                                  AppLocalizations.of(context)!
+                                      .homepage_noDescription,
                               style: textStyle,
                             ),
                             onTap: () {
@@ -508,7 +516,8 @@ class _HomepageBodyState extends State<HomepageBody> {
                                           settingsController.openAiClient;
                                       return AlertDialog(
                                         title: Text(assistant.name ?? ''),
-                                        content: const Text('살리기'),
+                                        content: Text(
+                                            AppLocalizations.of(context)!.undo),
                                         actions: [
                                           TextButton(
                                             style: TextButton.styleFrom(
@@ -516,7 +525,9 @@ class _HomepageBodyState extends State<HomepageBody> {
                                                   .textTheme
                                                   .labelLarge,
                                             ),
-                                            child: const Text('취소'),
+                                            child: Text(
+                                                AppLocalizations.of(context)!
+                                                    .cancel),
                                             onPressed: () {
                                               Navigator.pop(context);
                                             },
@@ -527,7 +538,9 @@ class _HomepageBodyState extends State<HomepageBody> {
                                                   .textTheme
                                                   .labelLarge,
                                             ),
-                                            child: const Text('확인'),
+                                            child: Text(
+                                                AppLocalizations.of(context)!
+                                                    .confirm),
                                             onPressed: () async {
                                               bool isSuccess =
                                                   await openai.createAssistant(
@@ -560,7 +573,6 @@ class _HomepageBodyState extends State<HomepageBody> {
                             },
                             onLongPress: () async {
                               await _showDeleteDialog(context, assistant, true);
-                              _manualRefreshAssistants();
                             },
                           );
                         })

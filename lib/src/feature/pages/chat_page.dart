@@ -434,6 +434,7 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+       //TODO
   Widget iconRow() {
     return Row(
       children: <Widget>[
@@ -445,6 +446,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
